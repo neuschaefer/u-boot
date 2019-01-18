@@ -64,7 +64,12 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 	void	(*theKernel)(int zero, int arch, uint params);
 
 #ifdef CONFIG_CMDLINE_TAG
-	char *commandline = getenv ("bootargs");
+	char *commandline ;
+#endif
+
+
+#ifdef CONFIG_CMDLINE_TAG
+	commandline = getenv ("bootargs");
 #endif
 
 	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))

@@ -570,6 +570,7 @@ int do_i2c_probe (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif
 		if (i2c_probe(j) == 0)
 			printf(" %02X", j);
+		udelay(40);
 	}
 	putc ('\n');
 
