@@ -63,9 +63,15 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 	int	machid = bd->bi_arch_number;
 	void	(*theKernel)(int zero, int arch, uint params);
 
+	{
+		extern void ntx_prebootm(void);
+		ntx_prebootm();
+	}
+
 #ifdef CONFIG_CMDLINE_TAG
 	char *commandline = getenv ("bootargs");
 #endif
+
 
 	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
 		return 1;

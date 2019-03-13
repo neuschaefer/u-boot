@@ -1,0 +1,1 @@
+/media/xiaobo/27GB/E612PP/bootable/bootloader/uboot-imx/board/freescale/mx50_rdp/flash_header-LPDDR2-WINBOND-W97BH2KB.S
