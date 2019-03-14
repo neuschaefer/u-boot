@@ -7,6 +7,8 @@
  * Copyright (C) 2008 Freescale Semiconductor, Inc.
  *		Dave Liu <daveliu@freescale.com>
  *
+ * Copyright (C) 2009-2011 Freescale Semiconductor, Inc.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation; either version 2 of
@@ -48,9 +50,14 @@ int __sata_initialize(void)
 		sata_dev_desc[i].block_write = sata_write;
 
 		rc = init_sata(i);
-		rc = scan_sata(i);
-		if ((sata_dev_desc[i].lba > 0) && (sata_dev_desc[i].blksz > 0))
-			init_part(&sata_dev_desc[i]);
+		if (!rc) {
+			rc = scan_sata(i);
+#ifndef CONFIG_NOFS
+			if ((sata_dev_desc[i].lba > 0) &&
+				(sata_dev_desc[i].blksz > 0))
+				init_part(&sata_dev_desc[i]);
+#endif
+		}
 	}
 	sata_curr_device = 0;
 	return rc;
@@ -106,7 +113,9 @@ int do_sata(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 					++ok;
 					if (dev)
 						putc ('\n');
+#ifndef CONFIG_NOFS
 					print_part(&sata_dev_desc[dev]);
+#endif
 				}
 			}
 			if (!ok) {
@@ -140,7 +149,9 @@ int do_sata(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			int dev = (int)simple_strtoul(argv[2], NULL, 10);
 
 			if (sata_dev_desc[dev].part_type != PART_TYPE_UNKNOWN) {
+#ifndef CONFIG_NOFS
 				print_part(&sata_dev_desc[dev]);
+#endif
 			} else {
 				printf("\nSATA device %d not available\n", dev);
 				rc = 1;

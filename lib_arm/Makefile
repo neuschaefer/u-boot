@@ -36,12 +36,12 @@ GLSOBJS	+= _umodsi3.o
 
 GLCOBJS	+= div0.o
 
+SOBJS-y += memcpy.o
+SOBJS-y += memset.o
+
 COBJS-y	+= board.o
 COBJS-y	+= bootm.o
 COBJS-y	+= cache.o
-ifndef CONFIG_SYS_NO_CP15_CACHE
-COBJS-y	+= cache-cp15.o
-endif
 COBJS-y	+= interrupts.o
 COBJS-y	+= reset.o
 

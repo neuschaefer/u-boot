@@ -35,5 +35,7 @@
 
 int ep0_recv_setup (struct urb *urb);
 
-
+#ifdef CONFIG_FASTBOOT
+int ep0_parse_setup(void *s);
+#endif  /* CONFIG_FASTBOOT */
 #endif

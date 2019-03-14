@@ -218,7 +218,22 @@ static __inline__ int abortboot(int bootdelay)
 #ifdef CONFIG_MENUPROMPT
 	printf(CONFIG_MENUPROMPT);
 #else
+#if 0
+#if defined(CONFIG_CONSOLE_QUIET)
+	if (bootdelay > 0) {
+	  extern int console_quiet;
+	  if(console_quiet==1) {
+	    extern void dmesg_dump(void);
+	    dmesg_dump();
+	  };
+	};
+#endif
+	if (bootdelay > 0)
 	printf("Hit any key to stop autoboot: %2d ", bootdelay);
+#endif
+	//bootdelay = 0;
+#if defined(CONFIG_CONSOLE_QUIET)
+#endif
 #endif
 
 #if defined CONFIG_ZERO_BOOTDELAY_CHECK
@@ -251,7 +266,7 @@ static __inline__ int abortboot(int bootdelay)
 # endif
 				break;
 			}
-			udelay(10000);
+			udelay(100); //yian, reduce uboot delay from 1 sec to 10m sec
 		}
 
 		printf("\b\b\b%2d ", bootdelay);
@@ -453,6 +468,16 @@ void main_loop (void)
 			reset_cmd_timeout();
 		}
 #endif
+		
+#if defined(CONFIG_CONSOLE_QUIET)
+	do {
+	  extern int console_quiet;
+	  if(console_quiet==1) {
+	    extern void dmesg_dump(void);
+	    dmesg_dump();
+	  };
+	} while(0);
+#endif
 		len = readline (CONFIG_SYS_PROMPT);
 
 		flag = 0;	/* assume no special flags for now */
@@ -526,7 +551,11 @@ void reset_cmd_timeout(void)
 
 #define CTL_CH(c)		((c) - 'a' + 1)
 
+#if defined(CONFIG_SYS_CBSIZE)
+#define MAX_CMDBUF_SIZE		CONFIG_SYS_CBSIZE
+#else
 #define MAX_CMDBUF_SIZE		256
+#endif
 
 #define CTL_BACKSPACE		('\b')
 #define DEL			((char)255)

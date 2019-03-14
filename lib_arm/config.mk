@@ -23,7 +23,7 @@
 
 CROSS_COMPILE ?= arm-linux-
 
-PLATFORM_CPPFLAGS += -DCONFIG_ARM -D__ARM__
+PLATFORM_CPPFLAGS += -DCONFIG_ARM -D__ARM__ -D__UBOOT__ -D_MX6SL_
 
 # Explicitly specifiy 32-bit ARM ISA since toolchain default can be -mthumb:
 PLATFORM_CPPFLAGS += $(call cc-option,-marm,)

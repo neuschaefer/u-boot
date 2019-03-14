@@ -49,6 +49,12 @@
 #include <nand.h>
 #include <onenand_uboot.h>
 #include <mmc.h>
+#ifdef CONFIG_ANDROID_RECOVERY
+#include <recovery.h>
+#endif
+#ifdef CONFIG_FASTBOOT
+#include <fastboot.h>
+#endif
 
 #ifdef CONFIG_DRIVER_SMC91111
 #include "../drivers/net/smc91111.h"
@@ -64,6 +70,10 @@ ulong monitor_flash_len;
 #ifdef CONFIG_HAS_DATAFLASH
 extern int  AT91F_DataflashInit(void);
 extern void dataflash_print_info(void);
+#endif
+
+#if defined CONFIG_SPLASH_SCREEN && defined CONFIG_VIDEO_MX5
+extern void setup_splash_image(void);
 #endif
 
 #ifndef CONFIG_IDENT_STRING
@@ -99,9 +109,10 @@ void mem_malloc_init (ulong dest_addr)
 	mem_malloc_start = dest_addr;
 	mem_malloc_end = dest_addr + CONFIG_SYS_MALLOC_LEN;
 	mem_malloc_brk = mem_malloc_start;
-
+#ifndef CONFIG_MEM_MALLOC_INIT_FAST
 	memset ((void *) mem_malloc_start, 0,
 			mem_malloc_end - mem_malloc_start);
+#endif
 }
 
 void *sbrk (ptrdiff_t increment)
@@ -113,7 +124,10 @@ void *sbrk (ptrdiff_t increment)
 		return (NULL);
 	}
 	mem_malloc_brk = new;
-
+#ifdef CONFIG_MEM_MALLOC_INIT_FAST
+	if(increment>0) memset((void*)old, 0, increment);
+//	memset(old, 0, increment);
+#endif
 	return ((void *) old);
 }
 
@@ -124,23 +138,23 @@ void *sbrk (ptrdiff_t increment)
  * May be supplied by boards if desired
  */
 void inline __coloured_LED_init (void) {}
-void inline coloured_LED_init (void) __attribute__((weak, alias("__coloured_LED_init")));
+void coloured_LED_init(void)__attribute__((weak, alias("__coloured_LED_init")));
 void inline __red_LED_on (void) {}
-void inline red_LED_on (void) __attribute__((weak, alias("__red_LED_on")));
+void red_LED_on(void) __attribute__((weak, alias("__red_LED_on")));
 void inline __red_LED_off(void) {}
-void inline red_LED_off(void)	     __attribute__((weak, alias("__red_LED_off")));
+void red_LED_off(void)       __attribute__((weak, alias("__red_LED_off")));
 void inline __green_LED_on(void) {}
-void inline green_LED_on(void) __attribute__((weak, alias("__green_LED_on")));
+void green_LED_on(void) __attribute__((weak, alias("__green_LED_on")));
 void inline __green_LED_off(void) {}
-void inline green_LED_off(void)__attribute__((weak, alias("__green_LED_off")));
+void green_LED_off(void) __attribute__((weak, alias("__green_LED_off")));
 void inline __yellow_LED_on(void) {}
-void inline yellow_LED_on(void)__attribute__((weak, alias("__yellow_LED_on")));
+void yellow_LED_on(void) __attribute__((weak, alias("__yellow_LED_on")));
 void inline __yellow_LED_off(void) {}
-void inline yellow_LED_off(void)__attribute__((weak, alias("__yellow_LED_off")));
+void yellow_LED_off(void) __attribute__((weak, alias("__yellow_LED_off")));
 void inline __blue_LED_on(void) {}
-void inline blue_LED_on(void)__attribute__((weak, alias("__blue_LED_on")));
+void blue_LED_on(void) __attribute__((weak, alias("__blue_LED_on")));
 void inline __blue_LED_off(void) {}
-void inline blue_LED_off(void)__attribute__((weak, alias("__blue_LED_off")));
+void blue_LED_off(void) __attribute__((weak, alias("__blue_LED_off")));
 
 /************************************************************************
  * Init Utilities							*
@@ -166,6 +180,9 @@ static int init_baudrate (void)
 
 static int display_banner (void)
 {
+#ifdef CONFIG_CONSOLE_QUIET
+	dmesg_puts("\n\nRunning Bootloader\n");
+#endif
 	printf ("\n\n%s\n\n", version_string);
 	debug ("U-Boot code: %08lX -> %08lX  BSS: -> %08lX\n",
 	       _armboot_start, _bss_start, _bss_end);
@@ -374,6 +391,15 @@ void start_armboot (void)
 	dataflash_print_info();
 #endif
 
+#ifdef CONFIG_GENERIC_MMC
+	puts ("MMC:   ");
+	mmc_initialize (gd->bd);
+#endif
+
+#ifdef BOARD_EARLY_INIT
+	board_early_init ();
+#endif
+
 	/* initialize environment */
 	env_relocate ();
 
@@ -388,6 +414,10 @@ void start_armboot (void)
 
 	/* IP Address */
 	gd->bd->bi_ip_addr = getenv_IPaddr ("ipaddr");
+
+#if defined CONFIG_SPLASH_SCREEN && defined CONFIG_VIDEO_MX5
+	setup_splash_image();
+#endif
 
 	stdio_init ();	/* get the devices list going. */
 
@@ -437,6 +467,11 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 	}
 #endif /* CONFIG_DRIVER_SMC91111 || CONFIG_DRIVER_LAN91C96 */
 
+#if defined(CONFIG_ENC28J60_ETH) && !defined(CONFIG_ETHADDR)
+	extern void enc_set_mac_addr (void);
+	enc_set_mac_addr ();
+#endif /* CONFIG_ENC28J60_ETH && !CONFIG_ETHADDR*/
+
 	/* Initialize from environment */
 	if ((s = getenv ("loadaddr")) != NULL) {
 		load_addr = simple_strtoul (s, NULL, 16);
@@ -451,9 +486,8 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 	board_late_init ();
 #endif
 
-#ifdef CONFIG_GENERIC_MMC
-	puts ("MMC:   ");
-	mmc_initialize (gd->bd);
+#ifdef CONFIG_ANDROID_RECOVERY
+	check_recovery_mode();
 #endif
 
 #if defined(CONFIG_CMD_NET)
@@ -465,6 +499,9 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 	debug ("Reset Ethernet PHY\n");
 	reset_phy();
 #endif
+#endif
+#ifdef CONFIG_FASTBOOT
+	check_fastboot_mode();
 #endif
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {
