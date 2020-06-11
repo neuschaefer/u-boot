@@ -40,6 +40,15 @@ typedef struct bd_info {
     int			bi_baudrate;	/* serial console baudrate */
     unsigned long	bi_ip_addr;	/* IP Address */
     unsigned char	bi_enetaddr[6]; /* Ethernet adress */
+#ifdef CONFIG_HAS_ETH1
+    unsigned char	bi_enet1addr[6]; /* Ethernet adress */
+#endif
+#ifdef CONFIG_HAS_ETH2
+    unsigned char	bi_enet2addr[6]; /* Ethernet adress */
+#endif
+#ifdef CONFIG_HAS_ETH3
+    unsigned char	bi_enet3addr[6]; /* Ethernet adress */
+#endif
     struct environment_s	       *bi_env;
     ulong	        bi_arch_number;	/* unique id for this board */
     ulong	        bi_boot_params;	/* where this board expects params */

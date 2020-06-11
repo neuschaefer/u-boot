@@ -234,6 +234,28 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	for (i=0; i<6; ++i) {
 		printf ("%c%02X", i ? ':' : ' ', bd->bi_enetaddr[i]);
 	}
+
+#if defined(CONFIG_HAS_ETH1)
+	puts ("\neth1addr    =");
+	for (i=0; i<6; ++i) {
+		printf ("%c%02X", i ? ':' : ' ', bd->bi_enet1addr[i]);
+	}
+#endif
+
+#if defined(CONFIG_HAS_ETH2)
+       puts ("\neth2addr    =");
+       for (i=0; i<6; ++i) {
+		printf ("%c%02X", i ? ':' : ' ', bd->bi_enet2addr[i]);
+	}
+#endif
+
+#if defined(CONFIG_HAS_ETH3)
+       puts ("\neth3addr    =");
+       for (i=0; i<6; ++i) {
+		printf ("%c%02X", i ? ':' : ' ', bd->bi_enet3addr[i]);
+	}
+#endif
+
 	puts  ( "\n"
 		"ip_addr     = ");
 	print_IPaddr (bd->bi_ip_addr);

@@ -301,6 +301,36 @@ void start_armboot (void)
 			if (s)
 				s = (*e) ? e + 1 : e;
 		}
+#ifdef CONFIG_HAS_ETH1
+		i = getenv_r ("eth1addr", tmp, sizeof (tmp));
+		s = (i > 0) ? tmp : NULL;
+
+		for (reg = 0; reg < 6; ++reg) {
+			gd->bd->bi_enet1addr[reg] = s ? simple_strtoul (s, &e, 16) : 0;
+			if (s)
+				s = (*e) ? e + 1 : e;
+		}
+#endif
+#ifdef CONFIG_HAS_ETH2
+		i = getenv_r ("eth2addr", tmp, sizeof (tmp));
+		s = (i > 0) ? tmp : NULL;
+
+		for (reg = 0; reg < 6; ++reg) {
+			gd->bd->bi_enet2addr[reg] = s ? simple_strtoul (s, &e, 16) : 0;
+			if (s)
+				s = (*e) ? e + 1 : e;
+		}
+#endif
+#ifdef CONFIG_HAS_ETH3
+		i = getenv_r ("eth3addr", tmp, sizeof (tmp));
+		s = (i > 0) ? tmp : NULL;
+
+		for (reg = 0; reg < 6; ++reg) {
+			gd->bd->bi_enet3addr[reg] = s ? simple_strtoul (s, &e, 16) : 0;
+			if (s)
+				s = (*e) ? e + 1 : e;
+		}
+#endif
 	}
 
 	devices_init ();	/* get the devices list going. */
