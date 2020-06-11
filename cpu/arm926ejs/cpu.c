@@ -91,7 +91,7 @@ int cpu_init (void)
 	 * setup up stacks if necessary
 	 */
 #ifdef CONFIG_USE_IRQ
-	DECLARE_GLOBAL_DATA_PTR;
+//	DECLARE_GLOBAL_DATA_PTR;
 
 	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
@@ -153,4 +153,29 @@ void icache_disable (void)
 int icache_status (void)
 {
 	return (read_p15_c1 () & C1_IC) != 0;
+}
+
+/* It makes no sense to use the dcache if the MMU is not enabled */
+void dcache_enable (void)
+{
+	ulong reg;
+
+	reg = read_p15_c1 ();
+	cp_delay ();
+	write_p15_c1 (reg | C1_DC);
+}
+
+void dcache_disable (void)
+{
+	ulong reg;
+
+	reg = read_p15_c1 ();
+	cp_delay ();
+	reg &= ~C1_DC;
+	write_p15_c1 (reg);
+}
+
+int dcache_status (void)
+{
+	return (read_p15_c1 () & C1_DC) != 0;
 }
