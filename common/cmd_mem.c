@@ -817,6 +817,14 @@ int do_mem_mtest (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		0x00000015,	/* three non-adjacent bits */
 		0x00000055,	/* four non-adjacent bits */
 		0xaaaaaaaa,	/* alternating 1/0 */
+		0xffffffff, /* all 1s */
+		0xdeadbeef, /* misc pattern */
+		0x00000000, /* all 0s */
+		0xbaadf00d, /* misc pattern */
+		0xff00ff00,	/* nibble check */
+		0x00ff00ff, /* nibble check */
+		0x0f0f0f0f, /* nibble check */
+		0xf0f0f0f0  /* nibble check */
 	};
 #else
 	ulong	incr;
