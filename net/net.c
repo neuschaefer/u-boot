@@ -168,6 +168,11 @@ void NcStart(void);
 int nc_input_packet(uchar *pkt, unsigned dest, unsigned src, unsigned len);
 #endif
 
+
+// Added for AMI Extension - R2C
+extern void R2C_Initiate(char * Ether);
+extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+
 volatile uchar	PktBuf[(PKTBUFSRX+1) * PKTSIZE_ALIGN + PKTALIGN];
 
 volatile uchar *NetRxPackets[PKTBUFSRX]; /* Receive packets			*/
@@ -448,6 +453,10 @@ restart:
 			SntpStart();
 			break;
 #endif
+		/* AMI Extension - R2C */
+		case R2C:
+			R2C_Initiate(NetOurEther);
+			break;
 		default:
 			break;
 		}
@@ -491,9 +500,17 @@ restart:
 		 *	Abort if ctrl-c was pressed.
 		 */
 		if (ctrlc()) {
-			eth_halt();
-			puts ("\nAbort\n");
-			return (-1);
+			if (protocol != R2C)
+			{
+				eth_halt();
+				puts ("\nAbort\n");
+				return (-1);
+			}
+			else		/* AMI Extension - R2C */
+			{
+				printf("\nR2C should not be aborted. Resetting ...\n");
+				do_reset(NULL,0,0,NULL);
+			}
 		}
 
 		ArpTimeoutCheck();
