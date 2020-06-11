@@ -70,7 +70,7 @@ endif
 
 ifeq ($(ARCH),ppc)
 SREC   += sched.srec
-BIN    += sched.bin sched
+BIN    += sched sched.bin
 endif
 
 # The following example is pretty 8xx specific...
