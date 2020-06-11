@@ -84,8 +84,12 @@ extern int flash_sect_protect (int flag, ulong addr_first, ulong addr_last);
 /* common/flash.c */
 extern void flash_protect (int flag, ulong from, ulong to, flash_info_t *info);
 extern int flash_write (char *, ulong, ulong);
+extern int flash_read (ulong addr, ulong cnt,char* dest);
+extern int addr_spi (unsigned long addr);
 extern flash_info_t *addr2info (ulong);
 extern int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt);
+extern int read_buff(flash_info_t *info, uchar *dest, ulong addr, ulong cnt);
+int read_buff_big(flash_info_t *info, uchar *dest, ulong addr, ulong cnt);
 
 /* board/?/flash.c */
 #if defined(CFG_FLASH_PROTECTION)
@@ -285,6 +289,42 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
 
 #define TOSH_ID_FVT160	0xC2		/* TC58FVT160 ID (16 M, top )		*/
 #define TOSH_ID_FVB160	0x43		/* TC58FVT160 ID (16 M, bottom )	*/
+
+/* Device IDs and sizes for SPI flashs */
+#define SPI_MXIC_MANUFACT	0xc2
+#define SPI_WINBOND_MANUFACT	0xef
+#define SPI_ST_MANUFACT		0x20
+
+#define SPI_MXIC_ID_MX25L6405	0x2017
+
+#define SPI_WINBOND_ID_W25P80	0x2014
+#define SPI_WINBOND_ID_W25P16	0x2015
+#define SPI_WINBOND_ID_W25P32	0x2016
+#define  SPI_ST_ID_M25P128       0x2018
+
+#define SPI_MXIC_MX25L6405_SIZE		0x800000
+#define SPI_MXIC_MX25L6405_SECTSIZE	0x10000
+#define SPI_MXIC_MX25L6405_SECTS	128
+
+#define SPI_WINBOND_W25P80_SIZE		0x100000
+#define SPI_WINBOND_W25P80_SECTSIZE	0x10000	
+#define SPI_WINBOND_W25P80_SECTS	16
+
+#define SPI_WINBOND_W25P16_SIZE		0x200000
+#define SPI_WINBOND_W25P16_SECTSIZE	0x10000	
+#define SPI_WINBOND_W25P16_SECTS	32
+
+#define SPI_WINBOND_W25P32_SIZE		0x400000
+#define SPI_WINBOND_W25P32_SECTSIZE	0x10000	
+#define SPI_WINBOND_W25P32_SECTS	64
+
+#define SPI_ST_M25P128_SIZE		0x1000000 //16 MB
+#define SPI_ST_M25P128_SECTSIZE		0x40000   //256K secotr size!!!!
+#define SPI_ST_M25P128_SECTS		64	  //64 sectors
+
+
+
+
 
 /*-----------------------------------------------------------------------
  * Internal FLASH identification codes

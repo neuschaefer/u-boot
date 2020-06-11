@@ -36,6 +36,34 @@
 #include <dataflash.h>
 #endif
 
+#ifdef CONFIG_HAS_SPI
+void spi_perror (int err)
+{
+	switch (err) {
+	case ERR_OK:
+		break;
+	case ERR_TIMOUT:
+		printf ("Timeout writing to DataFlash\n");
+		break;
+	case ERR_PROTECTED:
+		printf ("Can't write to protected DataFlash sectors\n");
+		break;
+	case ERR_INVAL:
+		printf ("Outside available DataFlash\n");
+		break;
+	case ERR_UNKNOWN_FLASH_TYPE:
+		printf ("Unknown Type of DataFlash\n");
+		break;
+	case ERR_PROG_ERROR:
+		printf ("General DataFlash Programming Error\n");
+		break;
+	default:
+		printf ("%s[%d] FIXME: rc=%d\n", __FILE__, __LINE__, err);
+		break;
+	}
+}
+#endif
+
 #if (CONFIG_COMMANDS & (CFG_CMD_MEMORY	| \
 			CFG_CMD_I2C	| \
 			CFG_CMD_ITEST	| \
@@ -142,6 +170,9 @@ int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #ifdef CONFIG_HAS_DATAFLASH
 		int rc;
 #endif
+#ifdef CONFIG_HAS_SPI
+		int rc;
+#endif
 		printf("%08lx:", addr);
 		linebytes = (nbytes>DISP_LINE_LEN)?DISP_LINE_LEN:nbytes;
 
@@ -165,6 +196,26 @@ int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 		} else {	/* addr does not correspond to DataFlash */
 #endif
+#ifdef CONFIG_HAS_SPI
+		if ((rc = flash_read(addr, (linebytes/size)*size, linebuf)) == ERR_OK){
+			/* if outside dataflash */
+			/*if (rc != 1) {
+				spi_perror (rc);
+				return (1);
+			}*/
+			for (i=0; i<linebytes; i+= size) {
+				if (size == 4) {
+					printf(" %08x", *uip++);
+				} else if (size == 2) {
+					printf(" %04x", *usp++);
+				} else {
+					printf(" %02x", *ucp++);
+				}
+				addr += size;
+			}
+
+		} else {	/* addr does not correspond to SPI */
+#endif
 		for (i=0; i<linebytes; i+= size) {
 			if (size == 4) {
 				printf(" %08x", (*uip++ = *((uint *)addr)));
@@ -176,6 +227,9 @@ int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			addr += size;
 		}
 #ifdef CONFIG_HAS_DATAFLASH
+		}
+#endif
+#ifdef CONFIG_HAS_SPI
 		}
 #endif
 		puts ("    ");
@@ -343,6 +397,12 @@ int do_mem_cmp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return 0;
 	}
 #endif
+#ifdef CONFIG_HAS_SPI
+	if (addr_spi(addr1) | addr_spi(addr2)){
+		puts ("Comparison with SPI space not supported.\n\r");
+		return 0;
+	}
+#endif
 
 	ngood = 0;
 
@@ -424,6 +484,9 @@ int do_mem_cp ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if ( (addr2info(dest) != NULL)
 #ifdef CONFIG_HAS_DATAFLASH
 	   && (!addr_dataflash(addr))
+#endif
+#ifdef CONFIG_HAS_SPI
+	   && (!addr_spi(addr))
 #endif
 	   ) {
 		int rc;
@@ -509,6 +572,39 @@ int do_mem_cp ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 
 	if (addr_dataflash(addr) && addr_dataflash(dest)){
+		puts ("Unsupported combination of source/destination.\n\r");
+		return 1;
+	}
+#endif
+#ifdef CONFIG_HAS_SPI
+	/* Check if we are copying from RAM or Flash to DataFlash */
+	if (addr_spi(dest) && !addr_spi(addr)){
+		int rc;
+
+		puts ("Copy to spi... ");
+
+		rc = flash_write ((char *)addr,dest,count*size);
+
+		if (rc != 1) {
+			spi_perror (rc);
+			return (1);
+		}
+		puts ("done\n");
+		return 0;
+	}
+
+	/* Check if we are copying from DataFlash to RAM */
+	if (addr_spi(addr) && !addr_spi(dest) && (addr2info(dest)==NULL) ){
+		int rc;
+		rc = flash_read(addr, count * size, (char *) dest);
+		if (rc != 1) {
+			spi_perror (rc);
+			return (1);
+		}
+		return 0;
+	}
+
+	if (addr_spi(addr) && addr_spi(dest)){
 		puts ("Unsupported combination of source/destination.\n\r");
 		return 1;
 	}
@@ -1038,6 +1134,12 @@ mod_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char *argv[])
 #ifdef CONFIG_HAS_DATAFLASH
 	if (addr_dataflash(addr)){
 		puts ("Can't modify DataFlash in place. Use cp instead.\n\r");
+		return 0;
+	}
+#endif
+#ifdef CONFIG_HAS_SPI
+	if (addr_spi(addr)){
+		puts ("Can't modify SPI in place. Use cp instead.\n\r");
 		return 0;
 	}
 #endif

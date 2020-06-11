@@ -324,7 +324,7 @@ int do_flerase (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	if (strcmp(argv[1], "all") == 0) {
 		for (bank=1; bank<=CFG_MAX_FLASH_BANKS; ++bank) {
-			printf ("Erase Flash Bank # %ld ", bank);
+			printf ("Erase Flash Bank # %ld \n", bank);
 			info = &flash_info[bank-1];
 			rcode = flash_erase (info, 0, info->sector_count-1);
 		}
@@ -336,7 +336,7 @@ int do_flerase (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			puts ("Bad sector specification\n");
 			return 1;
 		}
-		printf ("Erase Flash Sectors %d-%d in Bank # %d ",
+		printf ("Erase Flash Sectors %d-%d in Bank # %d \n",
 			sect_first, sect_last, (info-flash_info)+1);
 		rcode = flash_erase(info, sect_first, sect_last);
 		return rcode;

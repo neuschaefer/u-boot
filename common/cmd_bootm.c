@@ -174,6 +174,11 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		read_dataflash(addr, sizeof(image_header_t), (char *)&header);
 	} else
 #endif
+#ifdef CONFIG_HAS_SPI
+	if (addr_spi(addr)){
+		flash_read(addr, sizeof(image_header_t), (char *)&header);
+	} else
+#endif
 	memmove (&header, (char *)addr, sizeof(image_header_t));
 
 	if (ntohl(hdr->ih_magic) != IH_MAGIC) {
@@ -212,6 +217,13 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if (addr_dataflash(addr)){
 		len  = ntohl(hdr->ih_size) + sizeof(image_header_t);
 		read_dataflash(addr, len, (char *)CFG_LOAD_ADDR);
+		addr = CFG_LOAD_ADDR;
+	}
+#endif
+#ifdef CONFIG_HAS_SPI
+	if (addr_spi(addr)){
+		len  = ntohl(hdr->ih_size) + sizeof(image_header_t);
+		flash_read(addr, len, (char *)CFG_LOAD_ADDR);
 		addr = CFG_LOAD_ADDR;
 	}
 #endif
@@ -779,6 +791,11 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 			}
 		}
 #else	/* !(CONFIG_HW_WATCHDOG || CONFIG_WATCHDOG) */
+#ifdef CONFIG_HAS_SPI
+	if (addr_spi(addr)){
+		flash_read(data,len, (char *)initrd_start);
+	} else
+#endif
 		memmove ((void *)initrd_start, (void *)data, len);
 #endif	/* CONFIG_HW_WATCHDOG || CONFIG_WATCHDOG */
 		puts ("OK\n");

@@ -1278,4 +1278,21 @@ static int flash_write_cfibuffer (flash_info_t * info, ulong dest, uchar * cp,
 	return retcode;
 }
 #endif /* CFG_FLASH_USE_BUFFER_WRITE */
+
+int read_buff(flash_info_t *info, uchar *dest, ulong addr, ulong cnt)
+{
+	while (cnt--)
+	{
+		*dest = *(uchar *)addr;
+		 dest++,addr++;
+	}
+	return 0;
+}
+
+int 
+read_buff_big(flash_info_t *info, uchar *dest, ulong addr, ulong cnt)
+{
+	return read_buff(info,dest,addr,cnt);
+}
+
 #endif /* CFG_FLASH_CFI */
