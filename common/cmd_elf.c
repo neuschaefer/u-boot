@@ -317,7 +317,7 @@ unsigned long load_elf_image (unsigned long addr)
 
 /* ====================================================================== */
 U_BOOT_CMD(
-	bootelf,      2,      0,      do_bootelf,
+	bootelf,      128,      0,      do_bootelf,
 	"bootelf - Boot from an ELF image in memory\n",
 	" [address] - load address of ELF image.\n"
 );
