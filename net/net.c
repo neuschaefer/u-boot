@@ -575,6 +575,7 @@ restart:
 			return NetBootFileXferSize;
 
 		case NETLOOP_FAIL:
+			eth_halt();		/* AMI : Bug Fix */
 			return (-1);
 		}
 	}
