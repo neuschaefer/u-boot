@@ -71,7 +71,9 @@ store_block (unsigned block, uchar * src, unsigned len)
 
 	for (i=0; i<CFG_MAX_FLASH_BANKS; i++) {
 		/* start address in flash? */
-		if (load_addr + offset >= flash_info[i].start[0]) {
+//BugFix: In cases where Flash is located at lower range than SDRAM, it tftp direct flash will fail.
+//		if (load_addr + offset >= flash_info[i].start[0]) {
+		if ((load_addr + offset >= flash_info[i].start[0]) && (load_addr + offset <= ((flash_info[i].size-1) + flash_info[i].start[0]))) {
 			rc = 1;
 			break;
 		}
