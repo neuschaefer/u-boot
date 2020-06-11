@@ -34,7 +34,11 @@ const char *weekdays[] = {
 	"Sun", "Mon", "Tues", "Wednes", "Thurs", "Fri", "Satur",
 };
 
+#ifdef CONFIG_ARM
+#define RELOC(a)	((typeof(a))((unsigned long)(a)))
+#else
 #define RELOC(a)	((typeof(a))((unsigned long)(a) + gd->reloc_off))
+#endif
 
 int mk_date (char *, struct rtc_time *);
 
