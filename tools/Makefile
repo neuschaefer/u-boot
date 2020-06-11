@@ -189,7 +189,7 @@ environment.c:
 		ln -s ../common/environment.c environment.c
 
 environment.o: environment.c
-		$(CC) -g $(HOST_ENVIRO_CFLAGS) $(CPPFLAGS) -c $<
+		$(CC) -include $(TOPDIR)/../projdef.h -g $(HOST_ENVIRO_CFLAGS) $(CPPFLAGS) -c $<
 
 crc32.c:
 		@rm -f crc32.c
