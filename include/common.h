@@ -211,6 +211,7 @@ void	env_relocate (void);
 char	*getenv	     (char *);
 int	getenv_r     (char *name, char *buf, unsigned len);
 int	saveenv	     (void);
+int Getenvvar(unsigned char *count,unsigned char *VarName,int *BootVarlen);
 #ifdef CONFIG_PPC		/* ARM version to be fixed! */
 void inline setenv   (char *, char *);
 #else
