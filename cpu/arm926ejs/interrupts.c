@@ -175,14 +175,22 @@ void do_fiq (struct pt_regs *pt_regs)
 	bad_mode ();
 }
 
+#if  defined(CONFIG_WPCM450)
+extern void HandleIntr(void);
+void do_irq (struct pt_regs *pt_regs)
+{
+	HandleIntr();
+}
+#else
 void do_irq (struct pt_regs *pt_regs)
 {
 	printf ("interrupt request\n");
 	show_regs (pt_regs);
 	bad_mode ();
 }
+#endif
 
-#ifdef CONFIG_INTEGRATOR
+#if defined(CONFIG_INTEGRATOR) || defined(CONFIG_WPCM450)
 
 	/* Timer functionality supplied by Integrator board (AP or CP) */
 
