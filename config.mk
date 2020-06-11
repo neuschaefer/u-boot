@@ -119,6 +119,7 @@ OBJCFLAGS += --gap-fill=0xff
 gccincdir := $(shell $(CC) -print-file-name=include)
 
 CPPFLAGS := $(DBGFLAGS) $(OPTFLAGS) $(RELFLAGS)		\
+	-D__UBOOT__			\
 	-D__KERNEL__ -DTEXT_BASE=$(TEXT_BASE)		\
 	-I$(TOPDIR)/include				\
 	-fno-builtin -ffreestanding -nostdinc -isystem	\
