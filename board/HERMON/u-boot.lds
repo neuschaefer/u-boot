@@ -39,13 +39,13 @@ SECTIONS
 	  lib_generic/libgeneric.a (.text)
 	}
 
-	. = 0x0770FF80;
+	. = 0x06F0FF80;
 	.fmh 	:
 	{
 		board/HERMON/fmh.o (.bss)
 	} 
 
-	. = 0x07710000;
+	. = 0x06F10000;
 	.text2 		:
 	{
 	  *(.text)
