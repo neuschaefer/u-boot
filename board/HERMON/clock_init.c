@@ -70,6 +70,18 @@ void WBL_ClockInit (void)
   volatile UINT32 temp ;
 //	UINT32 PLLCON180 = 0x002C2005;
 
+// joe --- begin
+  UINT32 INTCR2	= (WPCM_GCR_VA_BASE + 0x0060);
+
+  /************************************************************************/
+  /* If WDR set, then clear it                 */
+  /************************************************************************/
+  if(IS_BIT_SET(*(volatile unsigned long*)INTCR2, 31))
+  {
+	CLEAR_BIT(*(volatile unsigned long *)INTCR2, 31);	
+  }
+// joe --- end
+
   /************************************************************************/
   /* If watchdog reset was done. Don't do any clock init                  */
   /************************************************************************/
