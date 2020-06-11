@@ -181,10 +181,13 @@ export	TEXT_BASE PLATFORM_CPPFLAGS PLATFORM_RELFLAGS CPPFLAGS CFLAGS AFLAGS
 #########################################################################
 
 %.s:	%.S
-	$(CPP) $(AFLAGS) -o $@ $(CURDIR)/$<
+	@echo "Preprocessing $< ..."
+	@$(CPP) $(AFLAGS) -o $@ $(CURDIR)/$<
 %.o:	%.S
-	$(CC) $(AFLAGS) -c -o $@ $(CURDIR)/$<
+	@echo "Assempling $< ..."
+	@$(CC) $(AFLAGS) -c -o $@ $(CURDIR)/$<
 %.o:	%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 #########################################################################
