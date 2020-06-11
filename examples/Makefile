@@ -115,6 +115,8 @@ CPPFLAGS += -I..
 
 all:	.depend $(OBJS) $(LIB) $(SREC) $(BIN)
 
+$(SREC) : $(BIN)
+
 #########################################################################
 $(LIB): .depend $(LIBOBJS)
 	$(AR) crv $@ $(LIBOBJS)
