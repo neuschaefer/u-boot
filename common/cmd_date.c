@@ -40,7 +40,7 @@ int mk_date (char *, struct rtc_time *);
 
 int do_date (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
+//	DECLARE_GLOBAL_DATA_PTR;
 	struct rtc_time tm;
 	int rcode = 0;
 
