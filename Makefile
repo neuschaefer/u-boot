@@ -1573,6 +1573,8 @@ cm4008_config	:	unconfig
 cm41xx_config	:	unconfig
 	@./mkconfig $(@:_config=) arm arm920t cm41xx NULL ks8695
 
+HERMON_config : unconfig
+	@./mkconfig $(@:_config=) arm arm926ejs HERMON NULL WPCM450
 #########################################################################
 ## S3C44B0 Systems
 #########################################################################
