@@ -45,7 +45,7 @@ void GetMACAddr(UINT8 *MACAddr)
 	char *start,*end;
 
 	memset(MACAddr,0,6);
-	if (getenv_r("eth1addr",MacStr,sizeof(MacStr)) == -1)
+	if (getenv_r("ethaddr",MacStr,sizeof(MacStr)) == -1)
 		return;
 	
 	end = &MacStr[0];
