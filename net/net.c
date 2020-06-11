@@ -168,6 +168,9 @@ void NcStart(void);
 int nc_input_packet(uchar *pkt, unsigned dest, unsigned src, unsigned len);
 #endif
 
+#ifdef CONFIG_NCSI_SUPPORT
+extern void NCSI_Start(void);
+#endif
 
 // Added for AMI Extension - R2C
 extern void R2C_Initiate(char * Ether);
@@ -177,7 +180,7 @@ volatile uchar	PktBuf[(PKTBUFSRX+1) * PKTSIZE_ALIGN + PKTALIGN];
 
 volatile uchar *NetRxPackets[PKTBUFSRX]; /* Receive packets			*/
 
-static rxhand_f *packetHandler;		/* Current RX packet handler		*/
+static rxhand_f *packetHandler=NULL;	/* Current RX packet handler		*/
 static thand_f *timeHandler;		/* Current timeout handler		*/
 static ulong	timeStart;		/* Time base value			*/
 static ulong	timeDelta;		/* Current timeout value		*/
@@ -457,6 +460,12 @@ restart:
 		case R2C:
 			R2C_Initiate(NetOurEther);
 			break;
+#ifdef CONFIG_NCSI_SUPPORT
+		case NCSI:
+			NCSI_Start();
+			NetState = NETLOOP_SUCCESS;		
+			break;
+#endif
 		default:
 			break;
 		}
@@ -1504,6 +1513,11 @@ NetReceive(volatile uchar * inpkt, int len)
 						ntohs(ip->udp_src),
 						ntohs(ip->udp_len) - 8);
 		break;
+
+	default:
+		if(packetHandler)	
+			(*packetHandler)((uchar *)NetRxPkt,0,0,NetRxPktLen);
+	
 	}
 }
 
