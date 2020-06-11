@@ -145,6 +145,7 @@ int
 GetLinkStatus(char *devname)
 {
 	u16 value =0;
+
 	unsigned char phyAddr = GetConfigPhyAddr(devname);
 	wpcm_miiphy_read(devname, phyAddr, PHY_BMSR, &value);  
 	wpcm_miiphy_read(devname, phyAddr, PHY_BMSR, &value);	
@@ -158,8 +159,11 @@ GetLinkStatus(char *devname)
 	if ((value & (PHY_AN_COMPLETE | PHY_LINK_STATUS_VALID)) == 
 							(PHY_AN_COMPLETE | PHY_LINK_STATUS_VALID))
 	{
+		printf("Links status ok, value=%x phyaddr=%x\n", value, phyAddr);
 		return 1;
 	}
+	printf("Links status not ok, value=%x phyaddr=%x\n", value, phyAddr);
+
 	return 0;
 
 }
@@ -169,20 +173,28 @@ ResetAutoNeg(char *devname)
 {
 	u16 value = 0;
 	u32 count =0;
+	u32 retry=0;
 	unsigned char phyAddr = GetConfigPhyAddr(devname);
 
 	wpcm_miiphy_read(devname, phyAddr, PHY_BMCR, &value);
 	wpcm_miiphy_write(devname, phyAddr, PHY_BMCR, (value| PHY_BMCR_AUTON | PHY_BMCR_RST_NEG) );
  	
 	count = 100000;
+	retry = 5;
  	while (count) 	/* wait for auto-negotiation complete */
    	{
 		wpcm_miiphy_read(devname, phyAddr, PHY_BMSR, &value);
 
     	if((value & PHY_REMOTE_FAULT)!=0)
     	{
-			  printf(" ERROR: PHY Remote Fault\n");
-    		  return -1;
+			wpcm_miiphy_read(devname, phyAddr, PHY_BMCR, &value);
+			wpcm_miiphy_write(devname, phyAddr, PHY_BMCR, (value| PHY_BMCR_AUTON | PHY_BMCR_RST_NEG) );
+ 	
+			printf(" ERROR: PHY Remote Fault\n");
+			retry--;
+			if (retry==0)
+    			return -1;
+			continue;
     	}
 
     	if ((value & (PHY_AN_COMPLETE | PHY_LINK_STATUS_VALID)) == 
@@ -273,6 +285,8 @@ void DetectPhyAddr(char *devname)
 {
    int num = -1, count = 0;
    unsigned short value =0;
+   unsigned char retry;
+
    if (devname == NULL)
    {
       return;
@@ -292,9 +306,13 @@ void DetectPhyAddr(char *devname)
          {
             configPhyAddr[num] = count;
             printf("PHY for device %s detected @ Addr 0x%x \n", devname, count);
-			// Reset Auto Negotiation 
-			ResetAutoNeg(devname);   // joe unmarked
-            return;
+
+			for (retry=0; retry<2; retry++)
+			{
+				// Reset Auto Negotiation 
+				if (ResetAutoNeg(devname)==0)	   // joe unmarked
+					return;
+			}
          }
 			
       }
