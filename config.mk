@@ -127,6 +127,8 @@ CPPFLAGS := $(DBGFLAGS) $(OPTFLAGS) $(RELFLAGS)		\
 
 CPPFLAGS :=$(CPPFLAGS) -Wall -Werror
 
+CPPFLAGS := $(CPPFLAGS) -include $(TOPDIR)/../projdef.h
+
 ifdef BUILD_TAG
 CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes \
 	-DBUILD_TAG='"$(BUILD_TAG)"'
