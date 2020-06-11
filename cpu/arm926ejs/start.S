@@ -51,6 +51,9 @@
 
 .globl _start
 _start:
+#if defined(CONFIG_WPCM450)
+	.word 0xAA550450
+#endif
 	b	reset
 	ldr	pc, _undefined_instruction
 	ldr	pc, _software_interrupt
@@ -141,6 +144,14 @@ reset:
 	 */
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_crit
+#endif
+
+#if defined(CONFIG_WPCM450)
+/* Reset the processor mode, because lowlevel_init mucked with it */
+	mrs	r0,cpsr
+	bic	r0,r0,#0x1f
+	orr	r0,r0,#0xd3
+	msr	cpsr,r0
 #endif
 
 #ifndef CONFIG_SKIP_RELOCATE_UBOOT
@@ -393,7 +404,7 @@ fiq:
 
 #endif
 
-# ifdef CONFIG_INTEGRATOR
+# if defined(CONFIG_INTEGRATOR) || defined(CONFIG_WPCM450)
 
 	/* Satisfied by Integrator routine (AP or CP) */
 
