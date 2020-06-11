@@ -118,6 +118,7 @@ LIBS += disk/libdisk.a
 LIBS += rtc/librtc.a
 LIBS += dtt/libdtt.a
 LIBS += drivers/libdrivers.a
+LIBS += drivers/spiflash/libspiflash.a
 LIBS += drivers/sk98lin/libsk98lin.a
 LIBS += post/libpost.a post/cpu/libcpu.a
 LIBS += common/libcommon.a
@@ -185,14 +186,14 @@ tags:
 		ctags -w `find $(SUBDIRS) include \
 				lib_generic board/$(BOARDDIR) cpu/$(CPU) lib_$(ARCH) \
 				fs/cramfs fs/fat fs/fdos fs/jffs2 \
-				net disk rtc dtt drivers drivers/sk98lin common \
+				net disk rtc dtt drivers drivers/sk98lin drivers/spiflash common \
 			\( -name CVS -prune \) -o \( -name '*.[ch]' -print \)`
 
 etags:
 		etags -a `find $(SUBDIRS) include \
 				lib_generic board/$(BOARDDIR) cpu/$(CPU) lib_$(ARCH) \
 				fs/cramfs fs/fat fs/fdos fs/jffs2 \
-				net disk rtc dtt drivers drivers/sk98lin common \
+				net disk rtc dtt drivers drivers/sk98lin drivers/spiflash common \
 			\( -name CVS -prune \) -o \( -name '*.[ch]' -print \)`
 
 System.map:	u-boot
