@@ -57,6 +57,8 @@ extern uchar env_get_char_spec(int);
 static uchar env_get_char_init (int index);
 uchar (*env_get_char)(int) = env_get_char_init;
 
+int gDefaultEnvironment = 0;
+
 /************************************************************************
  * Default settings to be used when no valid environment is found
  */
@@ -206,6 +208,7 @@ void env_relocate (void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
 
+	gDefaultEnvironment = 0;
 	DEBUGF ("%s[%d] offset = 0x%lx\n", __FUNCTION__,__LINE__,
 		gd->reloc_off);
 
@@ -238,6 +241,7 @@ void env_relocate (void)
 		puts ("Using default environment\n\n");
 #else
 		puts ("*** Warning - bad CRC, using default environment\n\n");
+		gDefaultEnvironment = 1;
 		SHOW_BOOT_PROGRESS (-1);
 #endif
 
