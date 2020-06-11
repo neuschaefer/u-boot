@@ -34,6 +34,10 @@
 #include <hush.h>
 #endif
 
+#ifdef CONFIG_NCSI_SUPPORT
+#include <net.h>
+#endif
+
 #include <post.h>
 
 #if defined(CONFIG_BOOT_RETRY_TIME) && defined(CONFIG_RESET_TO_RETRY)
@@ -371,6 +375,10 @@ void main_loop (void)
 
 #ifdef CONFIG_AUTO_COMPLETE
 	install_auto_complete();
+#endif
+
+#ifdef CONFIG_NCSI_SUPPORT
+	NetLoop(NCSI);
 #endif
 
 #ifdef CONFIG_PREBOOT
