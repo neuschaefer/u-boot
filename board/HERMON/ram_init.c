@@ -498,10 +498,10 @@ void WBL_RamInit(void)
 			while(1) ;
 		}
 
-		//MC_CFG5 = 0x190202  ; 	// MC_CFG5
+		//MC_CFG5 = 0x180202  ; 	// MC_CFG5
 			temp = 0x02 ;
 			temp |= 0x02 << 8 ;
-			temp |= 0x19 << 16 ;
+			temp |= 0x18 << 16 ;   // [Farida] orig. 0x19
 			*(volatile unsigned long *)MC_CFG5 = temp ;
 		*(volatile unsigned long *)MC_CFG6 = 0x0 ;	// MC_CFG6
 // NOT USED!!    0x1,	// CFG7
