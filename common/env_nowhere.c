@@ -64,4 +64,8 @@ int  env_init(void)
 	return (0);
 }
 
+int saveenv(void)
+{
+	return 0;
+}
 #endif /* CFG_ENV_IS_NOWHERE) */
