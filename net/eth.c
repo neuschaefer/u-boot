@@ -53,6 +53,9 @@ extern int rtl8169_initialize(bd_t*);
 extern int scc_initialize(bd_t*);
 extern int skge_initialize(bd_t*);
 extern int tsec_initialize(bd_t*, int, char *);
+#if defined(CONFIG_WPCM450)
+extern int 	wpcm_eth_initialize(bd_t *bis);
+#endif
 
 static struct eth_device *eth_devices, *eth_current;
 
@@ -232,6 +235,9 @@ int eth_initialize(bd_t *bis)
 	rtl8169_initialize(bis);
 #endif
 
+#if defined(CONFIG_WPCM450)
+	wpcm_eth_initialize(bis);
+#endif
 	if (!eth_devices) {
 		puts ("No ethernet found.\n");
 	} else {
