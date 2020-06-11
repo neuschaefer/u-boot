@@ -57,7 +57,7 @@ OBJS	= $(AOBJS) $(COBJS)
 
 CPPFLAGS += -I..
 
-all:	$(LIB) $(AOBJS)
+all:	$(LIB) $(OBJS)
 
 $(LIB): .depend $(OBJS)
 	$(AR) crv $@ $(OBJS)
