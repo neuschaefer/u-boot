@@ -39,8 +39,13 @@ extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
     defined (CONFIG_SERIAL_TAG) || \
     defined (CONFIG_REVISION_TAG) || \
     defined (CONFIG_VFD) || \
-    defined (CONFIG_LCD)
+    defined (CONFIG_LCD) || \
+	defined (CONFIG_ENETADDR_TAG) 
 static void setup_start_tag (bd_t *bd);
+
+#ifdef CONFIG_ENETADDR_TAG
+static void setup_enetaddr_tag(bd_t *bd);
+#endif
 
 # ifdef CONFIG_SETUP_MEMORY_TAGS
 static void setup_memory_tags (bd_t *bd);
@@ -254,8 +259,12 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
     defined (CONFIG_SERIAL_TAG) || \
     defined (CONFIG_REVISION_TAG) || \
     defined (CONFIG_LCD) || \
-    defined (CONFIG_VFD)
+    defined (CONFIG_VFD) || \
+	defined (CONFIG_ENETADDR_TAG)
 	setup_start_tag (bd);
+#ifdef CONFIG_ENETADDR_TAG
+	setup_enetaddr_tag(bd);
+#endif
 #ifdef CONFIG_SERIAL_TAG
 	setup_serial_tag (&params);
 #endif
@@ -300,7 +309,8 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
     defined (CONFIG_SERIAL_TAG) || \
     defined (CONFIG_REVISION_TAG) || \
     defined (CONFIG_LCD) || \
-    defined (CONFIG_VFD)
+    defined (CONFIG_VFD) || \
+	defined (CONFIG_ENETADDR_TAG)
 static void setup_start_tag (bd_t *bd)
 {
 	params = (struct tag *) bd->bi_boot_params;
@@ -399,6 +409,33 @@ static void setup_videolfb_tag (gd_t *gd)
 	params = tag_next (params);
 }
 #endif /* CONFIG_VFD || CONFIG_LCD */
+
+#ifdef CONFIG_ENETADDR_TAG
+static void setup_enetaddr_tag(bd_t *bd)
+{
+	unsigned long count;
+
+	params->hdr.tag = ATAG_ENETADDR;
+	params->hdr.size = tag_size (tag_enetaddr);
+	memcpy(params->u.enetaddr.enet0_addr, bd->bi_enetaddr,6);
+	count=1;
+#if defined(CONFIG_HAS_ETH1)
+	memcpy(params->u.enetaddr.enet1_addr, bd->bi_enet1addr,6);
+	count++;
+#endif
+#if defined(CONFIG_HAS_ETH2)
+	memcpy(params->u.enetaddr.enet2_addr, bd->bi_enet2addr,6);
+	count++;
+#endif
+#if defined(CONFIG_HAS_ETH3)
+	memcpy(params->u.enetaddr.enet3_addr, bd->bi_enet3addr,6);
+	count++;
+#endif
+	params->u.enetaddr.enet_count = count;
+	params = tag_next (params);
+}
+
+#endif
 
 #ifdef CONFIG_SERIAL_TAG
 void setup_serial_tag (struct tag **tmp)
