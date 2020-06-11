@@ -1,0 +1,5 @@
+void
+NoVendorFunc(void)
+{
+	return;	
+}
