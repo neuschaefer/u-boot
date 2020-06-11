@@ -261,13 +261,15 @@ static __inline__ int abortboot(int bootdelay)
 		/* delay 100 * 10ms */
 		for (i=0; !abort && i<100; ++i) {
 			if (tstc()) {	/* we got a key press	*/
-				abort  = 1;	/* don't auto boot	*/
-				bootdelay = 0;	/* no more delay	*/
 # ifdef CONFIG_MENUKEY
 				menukey = getc();
+				if (menukey != CONFIG_MENUKEY) 		// AMI Addition
+					continue;
 # else
 				(void) getc();  /* consume input	*/
 # endif
+				abort  = 1;	/* don't auto boot	*/
+				bootdelay = 0;	/* no more delay	*/
 				break;
 			}
 			udelay (10000);
