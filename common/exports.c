@@ -24,7 +24,7 @@ void jumptable_init (void)
 	gd->jt[XF_free] = (void *) free;
 	gd->jt[XF_get_timer] = (void *)get_timer;
 	gd->jt[XF_udelay] = (void *)udelay;
-#if defined(CONFIG_I386) || defined(CONFIG_PPC)
+#if defined(CONFIG_I386) || defined(CONFIG_PPC) || defined(CONFIG_ARM)
 	gd->jt[XF_install_hdlr] = (void *) irq_install_handler;
 	gd->jt[XF_free_hdlr] = (void *) irq_free_handler;
 #endif	/* I386 || PPC */
