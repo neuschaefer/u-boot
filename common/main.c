@@ -370,8 +370,12 @@ void main_loop (void)
 #endif /* CONFIG_PREBOOT */
 
 #if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
+#if defined(CONFIG_FSL_ENV_IN_MMC) /* E_BOOK */
+	s = CONFIG_BOOTDELAY;
+#else /* E_BOOK */
 	s = getenv ("bootdelay");
 	bootdelay = s ? (int)simple_strtol(s, NULL, 10) : CONFIG_BOOTDELAY;
+#endif /* E_BOOK */
 
 	debug ("### main_loop entered: bootdelay=%d\n\n", bootdelay);
 

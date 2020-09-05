@@ -46,7 +46,12 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern env_t *env_ptr;
 
+#if defined(CONFIG_MX50_ARM2) && defined(CONFIG_FSL_ENV_IN_MMC) /* E_BOOK */ 
+extern void env_relocate_spec (int boot_select);
+extern void read_raw_table(void);
+#else /* E_BOOK */
 extern void env_relocate_spec (void);
+#endif /* E_BOOK */
 extern uchar env_get_char_spec(int);
 
 static uchar env_get_char_init (int index);
@@ -139,6 +144,12 @@ uchar default_environment[] = {
 	"\0"
 };
 
+#if defined(CONFIG_ENV_IS_IN_NAND)		/* Environment is in Nand Flash */ \
+	|| defined(CONFIG_ENV_IS_IN_SPI_FLASH) \
+	|| defined(CONFIG_ENV_IS_IN_MMC)
+int default_environment_size = sizeof(default_environment);
+#endif
+
 void env_crc_update (void)
 {
 	env_ptr->crc = crc32(0, env_ptr->data, ENV_SIZE);
@@ -222,7 +233,11 @@ void set_default_env(void)
 	gd->env_valid = 1;
 }
 
+#if defined(CONFIG_MX50_ARM2) && defined(CONFIG_FSL_ENV_IN_MMC) /* E_BOOK */ 
+void env_relocate (int boot_select)
+#else /* E_BOOK */
 void env_relocate (void)
+#endif /* E_BOOK */
 {
 	DEBUGF ("%s[%d] offset = 0x%lx\n", __FUNCTION__,__LINE__,
 		gd->reloc_off);
@@ -256,7 +271,11 @@ void env_relocate (void)
 		set_default_env();
 	}
 	else {
+#if defined(CONFIG_MX50_ARM2) && defined(CONFIG_FSL_ENV_IN_MMC) /* E_BOOK */ 
+		env_relocate_spec (boot_select);
+#else /* E_BOOK */
 		env_relocate_spec ();
+#endif /* E_BOOK */
 	}
 	gd->env_addr = (ulong)&(env_ptr->data);
 

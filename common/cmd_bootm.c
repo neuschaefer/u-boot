@@ -622,6 +622,11 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	ret = bootm_load_os(images.os, &load_end, 1);
 
+/* 2011/04/05 FY11 : Added LCD OFF. */
+#ifdef CONFIG_MXC_EPDC
+	lcd_disable();
+#endif
+
 	if (ret < 0) {
 		if (ret == BOOTM_ERR_RESET)
 			do_reset (cmdtp, flag, argc, argv);
@@ -712,6 +717,13 @@ static image_header_t *image_get_kernel (ulong img_addr, int verify)
 		show_boot_progress (-2);
 		return NULL;
 	}
+
+#if defined(CONFIG_MX51_BBG) || defined(CONFIG_MX51_3DS)
+	if (image_get_load(hdr) < 0x90000000)
+		image_set_load(hdr, image_get_load(hdr)+0x20000000);
+	if (image_get_ep(hdr) < 0x90000000)
+		image_set_ep(hdr, image_get_ep(hdr)+0x20000000);
+#endif
 
 	show_boot_progress (3);
 	image_print_contents (hdr);

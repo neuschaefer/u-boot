@@ -245,7 +245,11 @@ void	doc_probe(unsigned long physadr);
 
 /* common/cmd_nvedit.c */
 int	env_init     (void);
+#if defined(CONFIG_MX50_ARM2) && defined(CONFIG_FSL_ENV_IN_MMC) /* E_BOOK */ 
+void	env_relocate (int boot_select);
+#else /* E_BOOK */
 void	env_relocate (void);
+#endif /* E_BOOK */
 int	envmatch     (uchar *, int);
 char	*getenv	     (char *);
 int	getenv_r     (char *name, char *buf, unsigned len);
