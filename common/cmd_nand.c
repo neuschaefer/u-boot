@@ -228,7 +228,8 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	    strncmp(cmd, "read", 4) != 0 && strncmp(cmd, "write", 5) != 0 &&
 	    strcmp(cmd, "scrub") != 0 && strcmp(cmd, "markbad") != 0 &&
 	    strcmp(cmd, "biterr") != 0 &&
-	    strcmp(cmd, "lock") != 0 && strcmp(cmd, "unlock") != 0 )
+	    strcmp(cmd, "lock") != 0 && strcmp(cmd, "unlock") != 0 &&
+	    strcmp(cmd, "protect") != 0 )
 		goto usage;
 
 	/* the following commands operate on the current device */
@@ -449,7 +450,32 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		}
 		return 0;
 	}
-
+    
+	if (strcmp(cmd, "protect") == 0) {
+		if (argc < 3)
+			goto usage;
+        
+        struct nand_chip *nand_chip = nand->priv;
+        
+		if (!strcmp("on", argv[2]))
+		{
+		    /* puts("NAND flash is write protected\n"); */
+		    nand_chip->hwcontrol(nand, NAND_CTL_SETWP);
+		    return 0;
+		}
+		else if (!strcmp("off", argv[2]))
+		{
+		    /* puts("NAND flash is NOT write protected\n"); */
+		    nand_chip->hwcontrol(nand, NAND_CTL_CLRWP);
+		    return 0;
+		}
+		else
+		{
+		    goto usage;
+		}
+	}
+    
+    
 usage:
 	printf("Usage:\n%s\n", cmdtp->usage);
 	return 1;
@@ -460,7 +486,7 @@ U_BOOT_CMD(nand, 5, 1, do_nand,
 	"info                  - show available NAND devices\n"
 	"nand device [dev]     - show or set current device\n"
 	"nand read[.jffs2]     - addr off|partition size\n"
-	"nand write[.jffs2]    - addr off|partiton size - read/write `size' bytes starting\n"
+	"nand write[.jffs2]    - addr off|partition size - read/write `size' bytes starting\n"
 	"    at offset `off' to/from memory address `addr'\n"
 	"nand erase [clean] [off size] - erase `size' bytes from\n"
 	"    offset `off' (entire device if not specified)\n"
@@ -470,7 +496,8 @@ U_BOOT_CMD(nand, 5, 1, do_nand,
 	"nand markbad off - mark bad block at offset (UNSAFE)\n"
 	"nand biterr off - make a bit error at offset (UNSAFE)\n"
 	"nand lock [tight] [status] - bring nand to lock state or display locked pages\n"
-	"nand unlock [offset] [size] - unlock section\n");
+	"nand unlock [offset] [size] - unlock section\n"
+	"nand protect on/off - enable or disable write protection\n");
 
 static int nand_load_image(cmd_tbl_t *cmdtp, nand_info_t *nand,
 			   ulong offset, ulong addr, char *cmd)
@@ -766,7 +793,6 @@ int do_nand (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 			printf ("%s\n", ret ? "ERROR" : "OK");
 
 			return ret;
-		}
 
 		printf ("Usage:\n%s\n", cmdtp->usage);
 		return 1;

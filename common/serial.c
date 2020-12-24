@@ -110,6 +110,10 @@ void serial_initialize (void)
 	serial_register(&eserial4_device);
 #endif
 #endif /* CFG_NS16550_SERIAL */
+
+#if defined(CONFIG_WPCM450) 
+	serial_register(&serial0_device);
+#endif
 	serial_assign (default_serial_console ()->name);
 }
 

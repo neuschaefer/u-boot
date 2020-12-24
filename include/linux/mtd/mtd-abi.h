@@ -1,5 +1,5 @@
 /*
- * $Id: mtd-abi.h,v 1.7 2004/11/23 15:37:32 gleixner Exp $
+ * $Id$
  *
  * Portions of MTD ABI definition which are shared by kernel and user space
  */
@@ -93,7 +93,7 @@ struct nand_oobinfo {
 	uint32_t useecc;
 	uint32_t eccbytes;
 	uint32_t oobfree[8][2];
-	uint32_t eccpos[32];
+	uint32_t eccpos[64];
 };
 
 #endif /* __MTD_ABI_H__ */

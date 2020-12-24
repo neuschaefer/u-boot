@@ -213,8 +213,11 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 #endif
 
 	if (data) {
-		initrd_start = data;
-		initrd_end = initrd_start + len;
+		//initrd_start = data;
+		//initrd_end = initrd_start + len;
+		initrd_start = ntohl(hdr->ih_load); 		
+		initrd_end = initrd_start + len;    		
+		memmove ((void *)(initrd_start), (void *)data, len);
 	} else {
 		initrd_start = 0;
 		initrd_end = 0;
@@ -263,6 +266,16 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 		extern void udc_disconnect (void);
 		udc_disconnect ();
 	}
+#endif
+
+#ifdef CONFIG_WPCM450_WHOVILLE
+#ifdef CONFIG_WPCM450_BOOT_STATUS
+    /* enable hardware watchdog timer before entering kernel */
+    if (getenv("disable_watchdog") == NULL)
+    {
+        *((ulong *) 0xB800101C) = 0x4B3;
+    }
+#endif
 #endif
 
 	cleanup_before_linux ();

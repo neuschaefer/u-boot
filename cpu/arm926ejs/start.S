@@ -40,6 +40,12 @@
 #include <./configs/omap730.h>
 #endif
 
+
+#if 0
+#define MC_DEBUG
+#endif
+
+
 /*
  *************************************************************************
  *
@@ -47,7 +53,10 @@
  *
  *************************************************************************
  */
-
+#if defined(CONFIG_WPCM450)
+.globl _tst_field
+  .word  0xAA550450
+#endif /* defined(CONFIG_WPCM450) */
 
 .globl _start
 _start:
@@ -139,16 +148,49 @@ reset:
 	 * we do sys-critical inits only at reboot,
 	 * not when booting from ram!
 	 */
+
+
+#ifdef MC_DEBUG
+TEST_REG:    .word 	0x00000090
+
+    LDR     R2, TEST_REG
+    LDR     R3, [R2, #0x0]
+    ADD     R3, R3, #1
+    STR     R3, [R2, #0x0]
+#endif
+
+
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_crit
 #endif
+
+
+#ifdef MC_DEBUG
+    LDR     R2, TEST_REG
+    LDR     R3, [R2, #0x4]
+    ADD     R3, R3, #1
+    STR     R3, [R2, #0x4]
+#endif
+
 
 #ifndef CONFIG_SKIP_RELOCATE_UBOOT
 relocate:				/* relocate U-Boot to RAM	    */
 	adr	r0, _start		/* r0 <- current position of code   */
 	ldr	r1, _TEXT_BASE		/* test if we run from flash or RAM */
+#if defined(CONFIG_WPCM450)
+	add r1,r1,#4            /* added by Arcady Chechik */
+#endif /* defined(CONFIG_WPCM450) */
 	cmp     r0, r1                  /* don't reloc during debug         */
 	beq     stack_setup
+
+
+#ifdef MC_DEBUG
+    LDR     R2, TEST_REG
+    LDR     R3, [R2, #0x10]
+    ADD     R3, R3, #1
+    STR     R3, [R2, #0x10]
+#endif
+
 
 	ldr	r2, _armboot_start
 	ldr	r3, _bss_start
@@ -161,6 +203,15 @@ copy_loop:
 	cmp	r0, r2			/* until source end addreee [r2]    */
 	ble	copy_loop
 #endif	/* CONFIG_SKIP_RELOCATE_UBOOT */
+
+
+#ifdef MC_DEBUG
+    LDR     R2, TEST_REG
+    LDR     R3, [R2, #0x8]
+    ADD     R3, R3, #1
+    STR     R3, [R2, #0x8]
+#endif
+
 
 	/* Set up the stack						    */
 stack_setup:
@@ -181,6 +232,56 @@ clbss_l:str	r2, [r0]		/* clear loop...                    */
 	add	r0, r0, #4
 	cmp	r0, r1
 	ble	clbss_l
+
+
+#ifdef MC_DEBUG
+    LDR     R2, TEST_REG
+    LDR     R3, [R2, #0xc]
+    ADD     R3, R3, #1
+    STR     R3, [R2, #0xc]
+    
+	adr	    r0, _start
+	ldr	    r1, _TEXT_BASE
+	add     r1, r1, #4
+	
+    mov     r2, #0x100
+    
+    LDR     R5, TEST_REG    
+    
+cmp_loop:
+    ldr     r3, [r0]
+    ldr     r4, [r1]
+    
+    cmp     r3, r4
+    
+    ldreq   R6, [R5, #0x20]
+    addeq   R6, R6, #1
+    streq   R6, [R5, #0x20]
+    
+    ldrne   R6, [R5, #0x24]
+    addne   R6, R6, #1
+    strne   R6, [R5, #0x24]
+    
+    bne     cmp_end
+    
+    add     r0, r0, #4
+    add     r1, r1, #4
+    
+    sub     r2, r2, #1
+    cmp     r2, #0
+    
+    bne     cmp_loop
+    
+cmp_end:
+    str     r0, [r5, #0x30]
+    str     r1, [r5, #0x34]
+    str     r2, [r5, #0x38]
+    str     r3, [r5, #0x3c]
+    str     r4, [r5, #0x40]
+    str     r5, [r5, #0x44]
+    str     r6, [r5, #0x48]
+#endif
+
 
 	ldr	pc, _start_armboot
 

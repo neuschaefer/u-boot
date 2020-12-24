@@ -70,7 +70,11 @@ void nand_init(void)
 		if (nand_curr_device == -1)
 			nand_curr_device = i;
 	}
+#if 0
 	printf("%lu MiB\n", size / (1024 * 1024));
+#else
+    printf("%lu MB\n", size / (1024 * 1024));
+#endif
 
 #ifdef CFG_NAND_SELECT_DEVICE
 	/*

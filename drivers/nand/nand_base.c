@@ -41,7 +41,7 @@
  *	The AG-AND chips have nice features for speed improvement,
  *	which are not supported yet. Read / program 4 pages in one go.
  *
- * $Id: nand_base.c,v 1.126 2004/12/13 11:22:25 lavinen Exp $
+ * $Id$
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -113,8 +113,29 @@ static struct nand_oobinfo nand_oob_64 = {
 	.oobfree = { {2, 38} }
 };
 
+static struct nand_oobinfo nand_oob_128 = {
+    .useecc = MTD_NANDECC_AUTOPLACE,
+	.eccbytes = 48,
+	.eccpos = {
+		    80,  81,  82,  83,  84,  85,  86,  87,
+		    88,  89,  90,  91,  92,  93,  94,  95,
+		    96,  97,  98,  99, 100, 101, 102, 103,
+		   104, 105, 106, 107, 108, 109, 110, 111,
+		   112, 113, 114, 115, 116, 117, 118, 119,
+		   120, 121, 122, 123, 124, 125, 126, 127},
+	.oobfree = { {2, 78} }
+};
+
 /* This is used for padding purposes in nand_write_oob */
 static u_char ffchars[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -907,7 +928,8 @@ static int nand_write_page (struct mtd_info *mtd, struct nand_chip *this, int pa
 	switch (eccmode) {
 	/* No ecc, write all */
 	case NAND_ECC_NONE:
-		printk (KERN_WARNING "Writing data without ECC to NAND-FLASH is not recommended\n");
+        /* suppress the warning message */
+		/* printk (KERN_WARNING "Writing data without ECC to NAND-FLASH is not recommended\n");*/
 		this->write_buf(mtd, this->data_poi, mtd->oobblock);
 		break;
 
@@ -1216,7 +1238,8 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 				lastwhinge = jiffies;
 			}
 #else
-			puts("Reading data from NAND FLASH without ECC is not recommended\n");
+            /* suppress the warning message */
+			/* puts("Reading data from NAND FLASH without ECC is not recommended\n"); */
 #endif
 			this->read_buf(mtd, data_poi, end);
 			break;
@@ -2476,6 +2499,9 @@ int nand_scan (struct mtd_info *mtd, int maxchips)
 			break;
 		case 64:
 			this->autooob = &nand_oob_64;
+			break;
+		case 128:
+			this->autooob = &nand_oob_128;
 			break;
 		default:
 			printk (KERN_WARNING "No oob scheme defined for oobsize %d\n",

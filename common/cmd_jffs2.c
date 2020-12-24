@@ -15,7 +15,7 @@
  *   Parsing routines are based on driver/mtd/cmdline.c from the linux 2.4
  *   kernel tree.
  *
- *   $Id: cmdlinepart.c,v 1.17 2004/11/26 11:18:47 lavinen Exp $
+ *   $Id$
  *   Copyright 2002 SYSGO Real-Time Solutions GmbH
  *
  * See file CREDITS for list of people who contributed to this
@@ -1262,7 +1262,8 @@ static void list_partitions(void)
 		printf("\ndevice %s%d <%s>, # parts = %d\n",
 				MTD_DEV_TYPE(dev->id->type), dev->id->num,
 				dev->id->mtd_id, dev->num_parts);
-		printf(" #: name\t\t\tsize\t\toffset\t\tmask_flags\n");
+		//printf(" #: name\t\t\tsize\t\toffset\t\tmask_flags\n");
+   		printf(" #: name\t\tsize\t\toffset\t\tmask_flags\n");
 
 		/* list partitions for given device */
 		part_num = 0;

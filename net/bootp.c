@@ -117,12 +117,13 @@ static int BootpCheckPkt(uchar *pkt, unsigned dest, unsigned src, unsigned len)
  */
 static void BootpCopyNetParams(Bootp_t *bp)
 {
-	IPaddr_t tmp_ip;
+	//IPaddr_t tmp_ip;
 
 	NetCopyIP(&NetOurIP, &bp->bp_yiaddr);
-	NetCopyIP(&tmp_ip, &bp->bp_siaddr);
-	if (tmp_ip != 0)
-		NetCopyIP(&NetServerIP, &bp->bp_siaddr);
+//Justin Don't replace server IP
+//	NetCopyIP(&tmp_ip, &bp->bp_siaddr);
+//	if (tmp_ip != 0)
+//		NetCopyIP(&NetServerIP, &bp->bp_siaddr);
 	memcpy (NetServerEther, ((Ethernet_t *)NetRxPkt)->et_src, 6);
 	if (strlen(bp->bp_file) > 0)
 		copy_filename (BootFile, bp->bp_file, sizeof(BootFile));
@@ -956,11 +957,15 @@ DhcpHandler(uchar * pkt, unsigned dest, unsigned src, unsigned len)
 					 * Use NFS to load the bootfile.
 					 */
 					NfsStart();
+                    NetState = NETLOOP_SUCCESS;
 					return;
 #endif
 				}
-			}
-			TftpStart();
+                TftpStart();
+            }
+//Justin			TftpStart();
+
+            NetState = NETLOOP_SUCCESS;
 			return;
 		}
 		break;

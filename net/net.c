@@ -154,6 +154,8 @@ char		BootFile[128];		/* Boot File name			*/
 IPaddr_t	NetPingIP;		/* the ip address to ping 		*/
 
 static void PingStart(void);
+#define PING_MAX_RETRY  60
+uchar PingRetryCount = PING_MAX_RETRY;
 #endif
 
 #if (CONFIG_COMMANDS & CFG_CMD_CDP)
@@ -305,7 +307,8 @@ NetLoop(proto_t protocol)
 #ifdef CONFIG_NET_MULTI
 	eth_set_current();
 #endif
-	if (eth_init(bd) < 0) {
+
+	if (eth_init(bd) <= 0) {
 		eth_halt();
 		return(-1);
 	}
@@ -495,6 +498,12 @@ restart:
 		if (ctrlc()) {
 			eth_halt();
 			puts ("\nAbort\n");
+
+            if (protocol == PING)
+            {
+                PingRetryCount = PING_MAX_RETRY;
+            }
+
 			return (-1);
 		}
 
@@ -748,8 +757,19 @@ int PingSend(void)
 static void
 PingTimeout (void)
 {
-	eth_halt();
-	NetState = NETLOOP_FAIL;	/* we did not get the reply */
+    if (PingRetryCount > 0)
+    {
+        PingRetryCount--;
+        printf("\b\b%2d", PING_MAX_RETRY - PingRetryCount);
+        NetState = NETLOOP_RESTART;
+    }
+    else
+    {
+        printf("\n");
+        PingRetryCount = PING_MAX_RETRY;
+	    eth_halt();
+    	NetState = NETLOOP_FAIL;	/* we did not get the reply */
+    }
 }
 
 static void
@@ -762,15 +782,28 @@ PingHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 	if (tmp != NetPingIP)
 		return;
 
+    printf("\n");
+    PingRetryCount = PING_MAX_RETRY;
+
 	NetState = NETLOOP_SUCCESS;
 }
 
 static void PingStart(void)
 {
 #if defined(CONFIG_NET_MULTI)
+
+#if 0
 	printf ("Using %s device\n", eth_get_name());
+#else
+	if (PingRetryCount >= PING_MAX_RETRY)
+	{
+	    printf ("Using %s device ...   ", eth_get_name());
+	}
+	
+#endif
+
 #endif	/* CONFIG_NET_MULTI */
-	NetSetTimeout (10 * CFG_HZ, PingTimeout);
+	NetSetTimeout (1 * CFG_HZ, PingTimeout);
 	NetSetHandler (PingHandler);
 
 	PingSend();

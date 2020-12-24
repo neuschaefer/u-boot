@@ -127,7 +127,14 @@ int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		if (argc > 2)
 			length = simple_strtoul(argv[2], NULL, 16);
 	}
-
+    
+    /* avoid to access non-aligned address */
+	if (size == 4) {
+		addr = addr & 0xFFFFFFFC;
+	} else if (size == 2) {
+		addr = addr & 0XFFFFFFFE;
+	}
+    
 	/* Print the lines.
 	 *
 	 * We buffer all read data, so we can make sure data is read only
@@ -447,8 +454,9 @@ int do_mem_cp ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		puts ("Copy to MMC... ");
 		switch (rc = mmc_write ((uchar *)addr, dest, count*size)) {
 		case 0:
-			putc ('\n');
-			return 1;
+			//putc ('\n');
+			//return 1;
+			break;
 		case -1:
 			puts ("failed\n");
 			return 1;
@@ -466,8 +474,9 @@ int do_mem_cp ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		puts ("Copy from MMC... ");
 		switch (rc = mmc_read (addr, (uchar *)dest, count*size)) {
 		case 0:
-			putc ('\n');
-			return 1;
+			//putc ('\n');
+			//return 1;
+			break;
 		case -1:
 			puts ("failed\n");
 			return 1;
@@ -1071,6 +1080,10 @@ mod_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char *argv[])
 			break;	/* timed out, exit the command	*/
 		}
 #endif
+		else if (nbytes == -1) {
+            printf("\n");
+			break;	/* press Ctrl-C	*/
+		}
 		else {
 			char *endp;
 			i = simple_strtoul(console_buffer, &endp, 16);

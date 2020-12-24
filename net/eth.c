@@ -255,6 +255,16 @@ int eth_initialize(bd_t *bis)
 #if defined(CONFIG_RTL8169)
 	rtl8169_initialize(bis);
 #endif
+#if defined(CONFIG_SOCLENIC)
+	soclenic_initialize(bis);
+#endif
+#if defined(CONFIG_FARADAYNIC)
+	faradaynic_initialize(bis);
+#endif
+#if defined(CONFIG_WPCM450NIC)
+	wpcm450nic_initialize(bis);
+#endif
+
 
 	if (!eth_devices) {
 		puts ("No ethernet found.\n");

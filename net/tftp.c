@@ -225,13 +225,22 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 		if (TftpBlock == 0) {
 			TftpBlockWrap++;
 			TftpBlockWrapOffset += TFTP_BLOCK_SIZE * TFTP_SEQUENCE_SIZE;
-			printf ("\n\t %lu MB received\n\t ", TftpBlockWrapOffset>>20);
+			/* printf ("\n\t %lu MB received\n\t ", TftpBlockWrapOffset>>20); */
 		} else {
+#if 0
 			if (((TftpBlock - 1) % 10) == 0) {
 				putc ('#');
 			} else if ((TftpBlock % (10 * HASHES_PER_LINE)) == 0) {
 				puts ("\n\t ");
 			}
+#else
+            /* print received packet size instead of #, every 512 * 1024 */
+            if (((TftpBlock - 1) % 1024) == 0) 
+            {
+				wpcm450_print_size("Loading:", 
+				                   TftpBlock * TFTP_BLOCK_SIZE + TftpBlockWrapOffset);
+			}
+#endif
 		}
 
 #ifdef ET_DEBUG
@@ -256,6 +265,9 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 				NetStartAgain ();
 				break;
 			}
+			
+			wpcm450_print_size("Loading:", 
+			                   TftpBlock * TFTP_BLOCK_SIZE + TftpBlockWrapOffset);
 		}
 
 		if (TftpBlock == TftpLastBlock) {
@@ -281,7 +293,14 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 			 *	We received the whole thing.  Try to
 			 *	run it.
 			 */
-			puts ("\ndone\n");
+			
+			wpcm450_print_size("Loading:", 
+				               TftpBlock * TFTP_BLOCK_SIZE + TftpBlockWrapOffset);
+			
+			puts ("\n");
+			
+			/* puts ("\ndone\n"); */
+			
 			NetState = NETLOOP_SUCCESS;
 		}
 		break;
@@ -303,7 +322,9 @@ TftpTimeout (void)
 		puts ("\nRetry count exceeded; starting again\n");
 		NetStartAgain ();
 	} else {
-		puts ("T ");
+	    wpcm450_print_size("Loading:", 
+				           TftpBlock * TFTP_BLOCK_SIZE + TftpBlockWrapOffset);
+		printf("   T:%ld", TftpTimeoutCount);
 		NetSetTimeout (TIMEOUT * CFG_HZ, TftpTimeout);
 		TftpSend ();
 	}
@@ -360,7 +381,8 @@ TftpStart (void)
 
 	printf ("Load address: 0x%lx\n", load_addr);
 
-	puts ("Loading: *\b");
+	/* puts ("Loading: *\b"); */
+    wpcm450_print_size("Loading:", 0);
 
 	NetSetTimeout (TIMEOUT * CFG_HZ, TftpTimeout);
 	NetSetHandler (TftpHandler);

@@ -1925,6 +1925,12 @@ smdk2410_config	:	unconfig
 SX1_config :		unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm925t sx1
 
+ast2000_config :	unconfig
+	@$(MKCONFIG) $(@:_config=) arm arm926ejs ast2000 NULL ast2000
+
+wpcm450_config :	unconfig
+	@$(MKCONFIG) $(@:_config=) arm arm926ejs wpcm450 NULL wpcm450
+
 # TRAB default configuration:	8 MB Flash, 32 MB RAM
 trab_config \
 trab_bigram_config \

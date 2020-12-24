@@ -6,7 +6,7 @@
  *
  *  Copyright (C) 2004 Thomas Gleixner (tglx@linutronix.de)
  *
- * $Id: nand_bbt.c,v 1.28 2004/11/13 10:19:09 gleixner Exp $
+ * $Id$
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -374,8 +374,10 @@ static int search_bbt (struct mtd_info *mtd, uint8_t *buf, struct nand_bbt_descr
 	for (i = 0; i < chips; i++) {
 		if (td->pages[i] == -1)
 			printk (KERN_WARNING "Bad block table not found for chip %d\n", i);
+#if 0
 		else
 			printk (KERN_DEBUG "Bad block table found at page %d, version 0x%02X\n", td->pages[i], td->version[i]);
+#endif
 	}
 	return 0;
 }
@@ -828,7 +830,15 @@ int nand_scan_bbt (struct mtd_info *mtd, struct nand_bbt_descr *bd)
 	}
 
 	if (res)
+	{
+        /* disable write protection */
+        this->hwcontrol(mtd, NAND_CTL_CLRWP);
+        
 		res = check_create (mtd, buf, bd);
+
+        /* enable write protection */
+        this->hwcontrol(mtd, NAND_CTL_SETWP);
+	}
 
 	/* Prevent the bbt regions from erasing / writing */
 	mark_bbt_region (mtd, td);
