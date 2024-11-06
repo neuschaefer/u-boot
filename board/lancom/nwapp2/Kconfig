@@ -1,0 +1,12 @@
+if TARGET_LANCOM_NWAPP2
+
+config SYS_BOARD
+	default "nwapp2"
+
+config SYS_VENDOR
+	default "lancom"
+
+config SYS_CONFIG_NAME
+	default "lancom_nwapp2"
+
+endif

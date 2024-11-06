@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Copyright 2024 J. Neuschäfer
+//
+// LANCOM NWAPP2, marketed as:
+// - LANCOM L-321agn Wireless (R2)
+// - LANCOM L-322agn dual Wireless (R2)
+// - LANCOM L-322E Wireless
+#include "mpc8314e.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	compatible = "lancom,nwapp2", "fsl,mpc8314e";
+	model = "LANCOM NWAPP2";
+
+	memory {
+		reg = <0x00000000 0x08000000>;	// 128MB at 0
+	};
+
+	chosen {
+		stdout-path = &serial0;
+		tick-timer = &timer;
+	};
+
+	gpio-watchdog {
+		compatible = "linux,wdt-gpio";
+		gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
+		hw_algo = "toggle";
+		hw_margin_ms = <1000>;
+	};
+
+	gpio-restart {
+		compatible = "gpio-restart";
+		gpios = <&gpio 10 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&localbus {
+	status = "okay";
+	ranges = <0x0 0x0 0xfe000000 0x00008000>;
+
+	nand@0,0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "fsl,mpc8315-fcm-nand",
+			     "fsl,elbc-fcm-nand";
+		reg = <0x0 0x0 0x2000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "loader1";
+				reg = <0x0 0x8000>;
+				read-only;
+			};
+
+			partition@8000 {
+				label = "loader2";
+				reg = <0x8000 0x78000>;
+				read-only;
+			};
+
+			// 0x80000:0xf80000 is designated "loader spare" by
+			// vendor firmware, but we re-use it for our purposes.
+
+			partition@80000 {
+				label = "u-boot-env";
+				reg = <0x80000 0x80000>;
+			};
+
+			partition@100000 {
+				label = "loader-spare";
+				reg = <0x100000 0xf00000>;
+			};
+
+			partition@1000000 {
+				label = "fs";
+				reg = <0x1000000 0xf000000>;
+				/* YAFFS2 filesystem */
+			};
+		};
+	};
+};
+
+&serial0 {
+	status = "okay";
+};
+
+&enet0 {
+	phy-handle = <&phy>;
+	phy-mode = "rgmii-id";
+	status = "okay";
+};
+
+&mdio0 {
+	status = "okay";
+	compatible = "fsl,gianfar-mdio", "simple-bus";
+
+	phy: ethernet-phy@1 {
+		reg = <1>;
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reset-gpios = <&gpio 22 GPIO_ACTIVE_LOW>;
+	};
+};
+
+&pci1 {
+	status = "okay";
+};
+
+&pci2 {
+	status = "okay";
+};
+
+&spi {
+	status = "okay";
+};
