@@ -93,6 +93,7 @@ config TARGET_LANCOM_NWAPP2
 	bool "Support LANCOM NWAPP2"
 	select ARCH_MPC8314
 	select BOARD_EARLY_INIT_F
+	select SUPPORT_LANCOM_UPX
 	help
 	  NWAPP2 is the engineering name for the WiFi Access points known as
 	  LANCOM L-321(R2) and L-322(R2). The firmware is stored in NAND flash.

@@ -602,6 +602,38 @@ targets += $(obj)/efi_crt0.o $(obj)/efi_reloc.o $(obj)/efi_freestanding.o
 CFLAGS_REMOVE_efi_reloc.o := $(LTO_CFLAGS)
 CFLAGS_REMOVE_efi_freestanding.o := $(LTO_CFLAGS)
 
+
+# LANCOM UPX image
+# ---------------------------------------------------------------------------
+#
+# The structure is as follows:
+#
+# UPX: Header + checksums + data
+#   - stub
+#     - header (in crt0)
+#     - main
+#   - U-Boot proper
+#
+UPX := $(srctree)/scripts/lancom_upx.py
+
+quiet_cmd_upx = UPX $@
+cmd_upx = $(UPX) $^ -o $@
+
+$(obj)/%.upx: $(obj)/%_upx.bin
+	$(call cmd,upx)
+
+$(obj)/%_upx.bin: $(obj)/%_upx.elf
+	$(call cmd,objcopy)
+
+$(obj)/%_upx.elf: $(obj)/$.o $(obj)/upx_crt0.o
+	$(call cmd,upx_ld)
+
+$(obj)/lancom_upx_crt0.o: $(srctree)/arch/$(ARCH)/lib/$(LANCOM_UPX_CRT0:.o=.S) FORCE
+	$(call if_changed_dep,as_o_S)
+
+targets += $(obj)/upx_crt0.o
+
+
 # ACPI
 # ---------------------------------------------------------------------------
 #

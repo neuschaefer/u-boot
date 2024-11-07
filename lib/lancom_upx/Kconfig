@@ -1,0 +1,18 @@
+# This config is selected by boards that support the UPX format.
+# Additionally, they must also define the folling options:
+#
+# - LANCOM_UPX_BOARD (string): The board name for use in the UPX header
+#
+config SUPPORT_LANCOM_UPX
+	def_bool n
+
+config LANCOM_UPX_BOARD
+	string
+	depends on SUPPORT_LANCOM_UPX
+
+config LANCOM_UPX
+	bool "Build U-Boot as LANCOM UPX image"
+	help
+	  LANCOM bootloaders expect firmware images in a format called UPX.
+	  If this option is enabled, U-Boot will be built as a UPX image, that
+	  can be installed on LANCOM devices.

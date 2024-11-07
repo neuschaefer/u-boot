@@ -1233,6 +1233,7 @@ endif
 INPUTS-$(CONFIG_REMAKE_ELF) += u-boot.elf
 INPUTS-$(CONFIG_EFI_APP) += u-boot-app.efi
 INPUTS-$(CONFIG_EFI_STUB) += u-boot-payload.efi
+INPUTS-$(CONFIG_LANCOM_UPX) += u-boot.upx
 
 # Generate this input file for binman
 ifeq ($(CONFIG_SPL),)

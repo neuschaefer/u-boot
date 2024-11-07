@@ -9,4 +9,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "lancom_nwapp2"
 
+config LANCOM_UPX_BOARD
+	default "NWAPP2"
+
 endif

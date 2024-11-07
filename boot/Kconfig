@@ -1,6 +1,7 @@
 menu "Boot options"
 
 source "lib/efi_loader/Kconfig"
+source "lib/lancom_upx/Kconfig"
 
 menu "Boot images"
 
