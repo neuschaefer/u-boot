@@ -621,9 +621,9 @@ U_BOOT_DRIVER(ns16550_serial) = {
 	.priv_auto	= sizeof(struct ns16550),
 	.probe = ns16550_serial_probe,
 	.ops	= &ns16550_serial_ops,
-#if !CONFIG_IS_ENABLED(OF_CONTROL)
+//#if !CONFIG_IS_ENABLED(OF_CONTROL)
 	.flags	= DM_FLAG_PRE_RELOC,
-#endif
+//#endif
 };
 
 DM_DRIVER_ALIAS(ns16550_serial, ti_da830_uart)
