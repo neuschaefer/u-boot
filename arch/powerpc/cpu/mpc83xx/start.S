@@ -277,9 +277,13 @@ in_flash:
 	/* r3: IMMR */
 	lis	r3, CONFIG_SYS_IMMR@h
 	/* run low-level CPU init code (in Flash)*/
+	lis	r4, CONFIG_SYS_IMMR@h
+	li	r3, 'c'
 	bl	cpu_init_f
 
 	/* run 1st part of board init code (in Flash)*/
+	lis	r4, CONFIG_SYS_IMMR@h
+
 	li	r3, 0		/* clear boot_flag for calling board_init_f */
 	bl	board_init_f
 
@@ -471,6 +475,9 @@ int_return:
 init_e300_core: /* time t 10 */
 	/* Initialize machine status; enable machine check interrupt */
 	/*-----------------------------------------------------------*/
+	lis	r4, CONFIG_SYS_IMMR@h
+	li	r3, '1'
+	stb	r3, 0x4500(r4)
 
 	li	r3, MSR_KERNEL			/* Set ME and RI flags */
 	rlwimi	r3, r5, 0, 25, 25	/* preserve IP bit set by HRCW */
@@ -481,6 +488,10 @@ init_e300_core: /* time t 10 */
 	mtmsr	r3
 	SYNC
 	mtspr	SRR1, r3			/* Make SRR1 match MSR */
+
+	lis	r4, CONFIG_SYS_IMMR@h
+	li	r3, '2'
+	stb	r3, 0x4500(r4)
 
 
 	lis	r3, CONFIG_SYS_IMMR@h
@@ -849,12 +860,13 @@ relocate_code:
 	la	r8,-4(r4)
 	la	r7,-4(r3)
 
+
 	/* copy */
 1:	lwzu	r0,4(r8)
 	stwu	r0,4(r7)
 	bdnz	1b
 
-	addi	r0,r5,3
+	addi	r0,r5,3          /* divide length by 4, rounding up */
 	srwi.	r0,r0,2
 	mtctr	r0
 	la	r8,-4(r4)
@@ -877,6 +889,10 @@ relocate_code:
 	add	r7,r3,r0
 3:	lwzu	r0,-4(r8)
 	stwu	r0,-4(r7)
+
+	lis r27, 0xe000
+	lwz r26, 0x0c08(r27); xori r26, r26, 0x2000; stw r26, 0x0c08(r27)		# GPIO watchdog
+
 	bdnz	3b
 
 /*

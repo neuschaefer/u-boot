@@ -60,8 +60,11 @@ static int mpc8xxx_wdt_start(struct udevice *dev, u64 timeout, ulong flags)
 
 	out_be32(&priv->base->swcrr, val);
 
-	if (!(in_be32(&priv->base->swcrr) & SWCRR_SWEN))
-		return -EBUSY;
+	if (!(in_be32(&priv->base->swcrr) & SWCRR_SWEN)) {
+		printf("SWEN is busy\n");
+		//return -EBUSY;
+		return 0;
+	}
 	return 0;
 
 }

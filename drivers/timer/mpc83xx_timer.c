@@ -116,6 +116,7 @@ int interrupt_init(void)
 
 	timer_priv = dev_get_priv(timer);
 
+	/*
 	if (sysinfo_get(&sysinfo)) {
 		debug("%s: sysinfo device could not be fetched.\n", __func__);
 		return -ENOENT;
@@ -135,8 +136,10 @@ int interrupt_init(void)
 		      __func__, ret);
 		return ret;
 	}
+	*/
 
-	timer_priv->decrementer_count = (clk_get_rate(&clock) / 4)
+	// TODO: Use get_bus_freq
+	timer_priv->decrementer_count = (133333333 / 4)
 					/ CONFIG_SYS_HZ;
 	/* Enable e300 time base */
 	setbits_be32(&immr->sysconf.spcr, SPCR_TBEN_MASK);
