@@ -783,7 +783,7 @@
 #define SCCR_USBCM_2			0x00A00000
 #define SCCR_USBCM_3			0x00F00000
 
-#elif defined(CONFIG_ARCH_MPC8313)
+#elif defined(CONFIG_ARCH_MPC831X)
 /* TSEC1 bits are for TSEC2 as well */
 #define SCCR_TSEC1CM			0xc0000000
 #define SCCR_TSEC1CM_SHIFT		30
