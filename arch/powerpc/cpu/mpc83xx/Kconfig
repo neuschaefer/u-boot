@@ -149,6 +149,11 @@ config ARCH_MPC8313
 	select MPC83XX_SECOND_I2C
 	select FSL_ELBC
 
+config ARCH_MPC8314
+	bool  # For MPC831{4,5}{,E}
+	select ARCH_MPC831X
+	select FSL_ELBC
+
 config ARCH_MPC832X
 	bool
 	select MPC83XX_QUICC_ENGINE

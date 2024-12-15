@@ -53,6 +53,15 @@ typedef struct sysconf83xx {
 	u32 spcr;		/* System Priority Configuration Register */
 	u32 sicrl;		/* System I/O Configuration Register Low */
 	u32 sicrh;		/* System I/O Configuration Register High */
+#if defined(CONFIG_ARCH_MPC8314)
+	u8 res7[0x0c];
+	u32 ddrcdr;		/* DDR Control Driver Register */
+	u32 ddrdsr;		/* DDR Debug Status Register */
+	u8 res8[0x10];
+	u32 pecr1;		/* PCI Express control register 1 */
+	u32 pecr2;		/* PCI Express control register 2 */
+	u8 res9[0xB8];
+#else
 	u8 res7[0x04];
 	u32 sidcr0;		/* System I/O Delay Configuration Register 0 */
 	u32 sidcr1;		/* System I/O Delay Configuration Register 1 */
@@ -67,6 +76,7 @@ typedef struct sysconf83xx {
 	u32 pecr2;		/* PCI Express control register 2 */
 #endif
 	u8 res9[0xB8];
+#endif
 } sysconf83xx_t;
 static_assert(sizeof(sysconf83xx_t) == 0x200);
 
@@ -721,6 +731,51 @@ typedef struct immap {
 	u8			res6[0xA000];
 	security83xx_t		security;
 	u8			res7[0xC0000];
+} immap_t;
+
+#elif defined(CONFIG_ARCH_MPC8314)
+typedef struct immap {
+	sysconf83xx_t		sysconf;	/* System configuration */
+	wdt83xx_t		wdt;		/* Watch Dog Timer (WDT) Registers */
+	rtclk83xx_t		rtc;		/* Real Time Clock Module Registers */
+	rtclk83xx_t		pit;		/* Periodic Interval Timer */
+	gtm83xx_t		gtm[2];		/* Global Timers Module */
+	ipic83xx_t		ipic;		/* Integrated Programmable Interrupt Controller */
+	arbiter83xx_t		arbiter;	/* System Arbiter Registers */
+	reset83xx_t		reset;		/* Reset Module */
+	clk83xx_t		clk;		/* System Clock Module */
+	pmc83xx_t		pmc;		/* Power Management Control Module */
+	gpio83xx_t		gpio[1];	/* General purpose I/O module */
+	u8			res0[0x1300];
+	ddr83xx_t		ddr;		/* DDR Memory Controller Memory */
+	fsl_i2c_t		i2c[1];		/* I2C Controller */
+	u8			res1[0x1400];
+	duart83xx_t		duart[2];	/* DUART */
+	u8			res2[0x900];
+	fsl_lbc_t		im_lbc;		/* Local Bus Controller Regs */
+	u8			res3[0x1000];
+	spi8xxx_t		spi;		/* Serial Peripheral Interface */
+	dma83xx_t		dma;		/* DMA */
+	pciconf83xx_t		pci_conf[1];	/* PCI Software Configuration Registers */
+	u8			res4[0x80];
+	ios83xx_t		ios;		/* Sequencer */
+	pcictrl83xx_t		pci_ctrl[1];	/* PCI Controller Control and Status Registers */
+	u8			res5[0xa00];
+	pex83xx_t		pciexp[2];	/* PCI Express Controller */
+	u8			res6[0xb000];
+	tdm83xx_t		tdm;		/* Time division multiplexing interface */
+	u8			res7[0x1e00];
+	sata83xx_t		sata[2];	/* Serial ATA controllers */
+	u8			res8[0x9000];
+	usb83xx_t		usb;		/* USB DR controller */
+	tsec83xx_t		tsec[2];
+	u8			res9[0x6000];
+	tdmdmac83xx_t		tdmdmac;	/* TDM DMA controller */
+	u8			res10[0x2000];
+	security83xx_t		security;	/* Security engine controller */
+	u8			res11[0xa3000];
+	serdes83xx_t		serdes;		/* SerDes PHY (PCI Express/SGMII) */
+	u8			res12[0x1cf00];
 } immap_t;
 
 #elif defined(CONFIG_ARCH_MPC8308)

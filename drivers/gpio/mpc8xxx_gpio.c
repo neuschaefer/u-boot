@@ -260,6 +260,7 @@ static const struct dm_gpio_ops gpio_mpc8xxx_ops = {
 static const struct udevice_id mpc8xxx_gpio_ids[] = {
 	{ .compatible = "fsl,pq3-gpio", .data = MPC8XXX_GPIO_TYPE },
 	{ .compatible = "fsl,mpc8308-gpio", .data = MPC8XXX_GPIO_TYPE },
+	{ .compatible = "fsl,mpc8314-gpio", .data = MPC8XXX_GPIO_TYPE },
 	{ .compatible = "fsl,mpc8349-gpio", .data = MPC8XXX_GPIO_TYPE },
 	{ .compatible = "fsl,mpc8572-gpio", .data = MPC8XXX_GPIO_TYPE},
 	{ .compatible = "fsl,mpc8610-gpio", .data = MPC8XXX_GPIO_TYPE},
