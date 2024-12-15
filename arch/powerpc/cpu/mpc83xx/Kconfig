@@ -2,7 +2,7 @@ menu "mpc83xx CPU"
 	depends on MPC83xx
 
 config DEFAULT_IMMR
-	hex
+	hex "Default value of IMMR" if SUPPORT_LANCOM_UPX
 	default 0xFF400000
 
 config E300
