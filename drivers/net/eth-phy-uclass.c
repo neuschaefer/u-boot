@@ -34,6 +34,13 @@ int eth_phy_binds_nodes(struct udevice *eth_dev)
 		if (!strncmp(node_name, "mdio", 4))
 			break;
 	}
+
+	ret = lists_bind_fdt(eth_dev, mdio_node, NULL, NULL, false);
+	if (ret) {
+		printf("failed to bind MDIO node: %d\n", ret);
+		return ret;
+	}
+
 	if (!ofnode_valid(mdio_node)) {
 		dev_dbg(eth_dev, "%s: %s mdio subnode not found!\n", __func__,
 			eth_dev->name);
