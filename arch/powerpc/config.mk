@@ -40,3 +40,5 @@ checkgcc4:
 		false; \
 	fi
 endif
+
+LDSCRIPT_LANCOM_UPX := $(srctree)/arch/powerpc/lib/lancom_upx.lds

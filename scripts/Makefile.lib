@@ -610,11 +610,12 @@ CFLAGS_REMOVE_efi_freestanding.o := $(LTO_CFLAGS)
 #
 # UPX: Header + checksums + data
 #   - stub
-#     - header (in crt0)
-#     - main
-#   - U-Boot proper
+#     - header          (in crt0)
+#     - main            (in lib/lancom_upx/upx.c)
+#   - U-Boot proper     (appended)
 #
 UPX := $(srctree)/scripts/lancom_upx.py
+LANCOM_UPX_CRT0 = crt0_lancom_upx.S
 
 quiet_cmd_upx = UPX $@
 cmd_upx = $(UPX) $^ -o $@
@@ -625,13 +626,14 @@ $(obj)/%.upx: $(obj)/%_upx.bin
 $(obj)/%_upx.bin: $(obj)/%_upx.elf
 	$(call cmd,objcopy)
 
-$(obj)/%_upx.elf: $(obj)/$.o $(obj)/upx_crt0.o
+$(obj)/u-boot_upx.elf: $(srctree)/lib/lancom_upx/upx.o $(srcdir)/arch/$(ARCH)/lib/crt0_lancom_upx.o
+	echo askldj
 	$(call cmd,upx_ld)
 
-$(obj)/lancom_upx_crt0.o: $(srctree)/arch/$(ARCH)/lib/$(LANCOM_UPX_CRT0:.o=.S) FORCE
+$(obj)/crt0_lancom_upx.o: $(srctree)/arch/$(ARCH)/lib/$(LANCOM_UPX_CRT0:.o=.S) FORCE
 	$(call if_changed_dep,as_o_S)
 
-targets += $(obj)/upx_crt0.o
+targets += $(obj)/u-boot.upx $(obj)/u-boot_upx.bin $(obj)/u-boot_upx.elf $(obj)/crt0_lancom_upx.o
 
 
 # ACPI

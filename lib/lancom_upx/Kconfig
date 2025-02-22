@@ -10,6 +10,10 @@ config LANCOM_UPX_BOARD
 	string
 	depends on SUPPORT_LANCOM_UPX
 
+config LANCOM_UPX_VERSION
+	string
+	depends on SUPPORT_LANCOM_UPX
+
 config LANCOM_UPX
 	bool "Build U-Boot as LANCOM UPX image"
 	help

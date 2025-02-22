@@ -1968,6 +1968,42 @@ OBJCOPYFLAGS_u-boot-payload.efi := $(OBJCOPYFLAGS_EFI)
 u-boot-payload.efi: u-boot-payload FORCE
 	$(call if_changed,zobjcopy)
 
+
+# LD script used for 
+u-boot-upx.lds: $(LDSCRIPT_LANCOM_UPX) FORCE
+	$(call if_changed_dep,cpp_lds)
+
+
+# Create the contents of the LANCOM UPX image in ELF format
+# It contains:
+#  - crt0
+#  - stub
+quiet_cmd_u-boot_upx ?= LD      $@  ($+)
+      cmd_u-boot_upx ?= $(LD) $(LDFLAGS_UPX) -o $@ \
+      -T u-boot-upx.lds lib/lancom_upx/upx_stub.o arch/$(ARCH)/lib/crt0_lancom_upx.o \
+      $(PLATFORM_LIBGCC)
+
+u-boot-upx-stub: u-boot-upx.lds lib/lancom_upx/upx_stub.o arch/$(ARCH)/lib/crt0_lancom_upx.o FORCE
+	$(call if_changed,u-boot_upx)
+
+OBJCOPYFLAGS_u-boot-upx-stub.bin := -O binary
+
+# Create the raw content of the LANCOM UPX stub
+u-boot-upx-stub.bin: u-boot-upx-stub
+	$(call if_changed,objcopy)
+
+u-boot-upx.bin: u-boot-upx-stub.bin u-boot.bin
+	$(call if_changed,cat)
+
+quiet_cmd_upx ?= UPX     $@
+      cmd_upx  = $(srctree)/scripts/lancom_upx.py $+ -o $@ \
+		 --board $(CONFIG_LANCOM_UPX_BOARD) --version $(CONFIG_LANCOM_UPX_VERSION)
+
+# Create the final LANCOM UPX image
+u-boot.upx: u-boot-upx.bin
+	$(call if_changed,upx)
+
+
 u-boot-img.bin: spl/u-boot-spl.bin u-boot.img FORCE
 	$(call if_changed,cat)
 

@@ -1,9 +1,15 @@
+.section .text.crt0
+
 	# ZLoader header
-.global start
-.section .text
-	.long 0			# .text start/len
+header:
+	.long _start		# .text start/len
+	.long _text_size
+	.long 0			# .bss start/len
 	.long 0
-	.long 0xdeadbeef	# .bss start/len
-	.long 0
-	.long 0			# unknown, must point into RAM
-	.long upx_main
+	.long _text		# unknown, must point into RAM
+	.long _start
+
+.global _start
+_start:
+	lis     %r1, _stack@h           # Set the stack pointer
+	b	upx_main
