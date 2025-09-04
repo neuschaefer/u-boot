@@ -814,11 +814,16 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	 *   - fall back 'kernel' (e.g. a Falcon-mode OS boot
 	 *   - fall back to using the first 'loadables' entry
 	 */
+	// NOTE: This logic doesn't work when we have an ARM Trusted Firmware
+	// image in the FIT. In that case, SPL just jumps into ATF, never to
+	// return again, instead of doing the sensible thing of skipping it.
+#if 0
 	if (node < 0)
 		node = spl_fit_get_image_node(&ctx, FIT_FIRMWARE_PROP, 0);
 
 	if (node < 0 && IS_ENABLED(CONFIG_SPL_OS_BOOT))
 		node = spl_fit_get_image_node(&ctx, FIT_KERNEL_PROP, 0);
+#endif
 
 	if (node < 0) {
 		debug("could not find firmware image, trying loadables...\n");
