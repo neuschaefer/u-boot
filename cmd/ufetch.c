@@ -208,7 +208,7 @@ static int do_ufetch(struct cmd_tbl *cmdtp, int flag, int argc,
 				desc = dev_get_uclass_plat(dev);
 				size = desc->lba * desc->blksz;
 				printf("%4s %d: " RESET, blk_get_uclass_name(desc->uclass_id),
-					desc->lun);
+					desc->devnum);
 				if (size)
 					print_size(size, "");
 				else
