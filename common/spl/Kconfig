@@ -1204,7 +1204,7 @@ config SPL_OS_BOOT
 	depends on !TI_SECURE_DEVICE
 	help
 	  Enable booting directly to an OS from SPL.
-	  for more info read doc/README.falcon
+	  for more info read doc/develop/falcon.rst
 
 config SPL_PAYLOAD_ARGS_ADDR
 	hex "Address in memory to load 'args' file for Falcon Mode to"
