@@ -36,6 +36,12 @@
 #include <lmb.h>
 #include <linux/ctype.h>
 #include <asm/byteorder.h>
+#include <asm/errno.h>
+#include <aimage.h>
+#include <nand.h>
+#include <sha.h>
+
+#include "../../linux/include/linux/roku.h"
 
 #if defined(CONFIG_CMD_USB)
 #include <usb.h>
@@ -93,6 +99,14 @@ static int fit_check_kernel (const void *fit, int os_noffset, int verify);
 
 static void *boot_get_kernel (cmd_tbl_t *cmdtp, int flag,int argc, char * const argv[],
 		bootm_headers_t *images, ulong *os_data, ulong *os_len);
+extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+void append_mtdparts(int swap);
+static void append_ethaddr(void);
+extern void set_working_fdt_addr(void *addr);
+extern int config_noaccess(void);
+extern char _roothash[];
+extern unsigned char _bootdata_digest[];
+static int custom_pkg_sideload = 0;
 
 /*
  *  Continue booting an OS image; caller already has:
@@ -602,6 +616,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 #endif
 
+	eth_initialize(gd->bd);
 	/* determine if we have a sub command */
 	if (argc > 1) {
 		char *endp;
@@ -696,7 +711,10 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 	arch_preboot_os();
-
+	if (argc != 0) {
+		append_mtdparts(0);
+		append_ethaddr();
+	}
 	boot_fn(0, argc, argv, &images);
 
 	show_boot_progress (-9);
@@ -1013,6 +1031,689 @@ U_BOOT_CMD(
 	"\tbdt     - OS specific bd_t processing\n"
 	"\tprep    - OS specific prep before relocation or go\n"
 	"\tgo      - start OS"
+);
+
+
+static u_char const* custom_pkg = NULL;
+
+static void set_custom_pkg(u_char const* pkg)
+{
+	custom_pkg = pkg;
+}
+
+static unsigned get_int4(u_char const* p)
+{
+	return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
+}
+
+static unsigned long long get_int8(u_char const* p)
+{
+    unsigned long long ret = 0;
+    int eos = 0;
+    int i;
+    for (i = 0; i < 8; i++) {
+        u_char ch = eos ? 0 : p[i];
+        eos = (ch == 0);
+        ret = (ret << 8) | ch;
+    }
+    return ret;
+}
+
+static u_char const* get_custom_pkg_item(char const* id, unsigned *len)
+{
+    u_char const* p;
+    unsigned long long num_id;
+
+    if (!custom_pkg)
+        return NULL;
+    num_id = get_int8((u_char const*)id);
+    for (p = custom_pkg;;) {
+        unsigned long long xid;
+        unsigned xlen;
+        xid = get_int8(p);
+        p += 8;
+        xlen = get_int4(p);
+        p += 4;
+        if (xid == 0)
+            break;
+        if (xid == num_id) {
+            *len = xlen;
+            return p;
+        }
+        p += xlen;
+    }
+    return NULL;
+}
+
+static aimage_v1_header_t* get_aimage_v1_header(unsigned offset)
+{
+	static aimage_v1_header_t hdr;
+	size_t total = sizeof(hdr);
+	int ret1, ret2;
+
+	memset(&hdr, 0, sizeof(hdr));
+	ret1 = nand_read(&nand_info[0], offset, &total, (u_char*)&hdr);
+	if (ret1 == -EUCLEAN) {
+		printf("%s: 0x%08x bit corrected\n", __FUNCTION__, offset);
+		ret1 = 0;
+	}
+	ret2 = aimage_v1_sanity_check (&hdr, 0, CFG_BOOTN_FS_SIZE);
+	if (ret1 !=0 || ret2 != 0 || total != sizeof(hdr)) {
+		//printf ("%s: header not found (offset 0x%08x), %d (%d, %d)\n", __FUNCTION__, offset ,ret2, total, ret1);
+		return 0;
+	}
+	return &hdr;
+}
+
+#if 0
+static int verify_aimage(unsigned offset, unsigned length, unsigned type)
+{
+	static u_char buf[64*1024];
+	aimage_stream_context_t ctx;
+
+	aimage_v1_verify_signature_stream_init_dk (&ctx, type, length, NULL);
+	while (length) {
+		size_t amt = sizeof(buf);
+		int ret;
+
+		if (length < amt) amt = length;
+		ret = nand_read(&nand_info[0], offset, &amt, buf);
+		if (ret == -EUCLEAN) {
+			printf("+");
+			ret = 0;
+		}
+		if (ret != 0 || amt == 0) {
+			printf ("%s: read failed (offset 0x%08x), %d (%d)\n",
+		          __FUNCTION__, offset ,ret, amt);
+			break;
+		}
+		offset += amt;
+		length -= amt;
+		printf(".");
+        	ret = aimage_v1_verify_signature_stream_update (&ctx, buf, amt);
+		if (ret == 0) return 1;
+		if (ret == -1) return 0;
+	}
+	printf("%s: Not enough data\n", __FUNCTION__);
+	return 0;
+}
+#endif
+
+static u_char* verify_auimage(unsigned offset, aimage_v1_header_t* hdr, unsigned loadaddr, unsigned type, unsigned release_id)
+{
+	u_char* buf = 0;
+	int ret;
+	size_t amt = hdr->length - 256;
+
+	if (hdr->length > KERNEL_SIZE_MAX) {
+		printf("uimage too big: %d\n", hdr->length);
+		return 0;
+	}
+	buf = loadaddr ? (u_char*)loadaddr : malloc(hdr->length);
+	memcpy(buf, hdr, 256);
+	ret = nand_read(&nand_info[0], offset + 256, &amt, buf + 256);
+	if (ret == -EUCLEAN) {
+		printf("%s:0x%08x bit corrected.\n",__FUNCTION__,offset);
+		ret = 0;
+	}
+	if (ret != 0 || (amt+256) != hdr->length) {
+		printf ("%s: read failed (offset 0x%08x), %d (%d)\n",
+	          __FUNCTION__, offset ,ret, amt);
+		if (!loadaddr) free(buf);
+		return 0;
+	}
+    if (hdr->type == IMG_TYPE_CUSTOM_PKG_TOKEN) {
+        ret = aimage_v1_verify_signature_dk ((aimage_v1_header_t *) buf, type, hdr->length);
+    } else if (hdr->type == IMG_TYPE_BOOTDATA) {
+        // bootdata is hash-locked to u-boot.
+        uint8_t digest[SHA_DIGEST_LENGTH];
+        SHA_CTX ctx;
+        SHA1_Init(&ctx);
+        SHA1_Update(&ctx, buf, hdr->length);
+        SHA1_Final(digest, &ctx);
+        if (memcmp(digest, _bootdata_digest, sizeof(digest))) {
+            printf("bootdata digest failure!\n");
+            if (config_noaccess() && !custom_pkg_sideload)
+                ret = -1;
+            printf("ignore bootdata digest failure\n");
+        }
+    } else {
+        if (((aimage_v1_header_t *) buf)->release_id != release_id) {
+            printf("release_id mismtach: %d, %d\n", ((aimage_v1_header_t *) buf)->release_id, release_id);
+            ret = -1;
+        } else {
+            ret = aimage_v1_verify_signature_dk ((aimage_v1_header_t *) buf, type, hdr->length);
+        }
+    }
+	if (ret == 0) return buf;
+	printf("verify failed: %d\n", ret);
+	if (!loadaddr) free(buf);
+	return 0;
+}
+
+static void append_to_bootargs(const char* s)
+{
+	char* b = getenv("bootargs");
+	char* n = malloc(strlen(b) + strlen(s) + 1);
+
+	strcat(strcpy(n,b),s);
+	setenv("bootargs",n);
+	free(n);
+}
+
+static void prepend_to_bootargs(const char* s)
+{
+	char* b = getenv("bootargs");
+	char* n = malloc(strlen(b) + strlen(s) + 1);
+
+	strcat(strcpy(n,s),b);
+	setenv("bootargs",n);
+	free(n);
+}
+
+extern unsigned nandbch_map_block(unsigned offset);
+
+void append_mtdparts(int swap)
+{
+	char buf[256];
+	unsigned start[7];
+	unsigned size[7];
+	unsigned f,g;
+
+	start[0] = 0;
+	start[1] = nandbch_map_block(CFG_BOOTN_BOOT_SIZE-CFG_BOOTN_ID_SIZE-256*1024-128*1024)/1024;
+	start[2] = nandbch_map_block(CFG_BOOTN_BOOT_SIZE-CFG_BOOTN_ID_SIZE-256*1024)/1024;
+	start[3] = nandbch_map_block(CFG_BOOTN_BOOT_SIZE-CFG_BOOTN_ID_SIZE)/1024;
+	start[4] = nandbch_map_block(CFG_BOOTN_BOOT_SIZE)/1024;
+	start[5] = nandbch_map_block(CFG_BOOTN_BOOT_SIZE+CFG_BOOTN_FS_SIZE)/1024;
+	start[6] = nandbch_map_block(CFG_BOOTN_BOOT_SIZE+2*CFG_BOOTN_FS_SIZE)/1024;
+	size[0] = start[1] - start[0];
+	size[1] = start[2] - start[1];
+	size[2] = start[3] - start[2];
+	size[3] = start[4] - start[3];
+	size[4] = start[5] - start[4];
+	size[5] = start[6] - start[5];
+	size[6] = nand_info[0].size/1024 - start[6];
+	f = swap ? 5 : 4;
+	g = swap ? 4 : 5;
+	sprintf(buf, " mtdparts=bcmnand:%dk(Boot),%dk@%dk(Active),%dk@%dk(Update)"
+                  ",%dk@%dk(RW)enc,%dk@%dk(ID),%dk@0k(All),%dk@%dk(BootBackup),128k@%dk(PC)", size[0], size[f],
+	          start[f], size[g], start[g], size[6], start[6], size[3],
+	          start[3], (unsigned)(nand_info[0].size/1024), size[2], start[2], start[1]);
+	append_to_bootargs(buf);
+}
+
+static void read_macaddr(unsigned char a[3])
+{
+	int ret;
+	size_t amt = sizeof(a);
+	unsigned offset = CFG_BOOTN_MAC_OFFSET;
+	unsigned length = amt;
+
+	ret = nand_read(&nand_info[0], offset, &amt, a);
+	if (ret == -EUCLEAN) {
+		printf("%s:0x%08x bit corrected.\n",__FUNCTION__,offset);
+		ret = 0;
+	}
+	if (ret != 0 || amt != length) {
+		printf ("%s: read failed (offset 0x%08x), %d (%d)\n",
+	          __FUNCTION__, offset ,ret, amt);
+		memset(a, 0xff, sizeof(a));
+	}
+}
+
+
+static int get_esn(char esn[])
+{
+    extern unsigned char _esn_mac[];
+	unsigned char* ib_data = _esn_mac;
+	Roku_GetESN(ib_data, esn);
+    return 0;
+}
+
+static void append_ethaddr(void)
+{
+	char esn[16];
+	unsigned char oui[3];
+	unsigned char addr[3];
+	char buf[40];
+
+    if (get_esn(esn) < 0)
+        return;
+	Roku_GetOUI(esn, oui);
+	read_macaddr(addr);
+	sprintf(buf, " bcmmac=%02X:%02X:%02X:%02X:%02X:%02X",
+			oui[0], oui[1], oui[2], addr[2], addr[1], addr[0] & ~1);
+	append_to_bootargs(buf);
+}
+
+static unsigned get_img_offset(unsigned part)
+{
+	return CFG_BOOTN_BOOT_SIZE + CFG_BOOTN_UBOOT_SIZE + (part ? CFG_BOOTN_FS_SIZE : 0);
+}
+
+static void gpio_set_led_on_off(int on)
+{
+    gpio_request(12, "gpio_set_led_on_off");
+    gpio_direction_output(12, !on);
+    gpio_free(12);
+}
+
+static void set_led(unsigned part)
+{
+    unsigned part_start = get_img_offset(part);
+    aimage_v1_header_t* hdr = get_aimage_v1_header(part_start);
+
+    if (!hdr) return;
+
+    if (hdr->release_id == 0) {
+        printf("Manufacturing image detected\n");
+        gpio_set_led_on_off(0);    // LED off for manufacturing image
+    } else {
+        printf("Application image detected\n");
+        gpio_set_led_on_off(1);    // LED on for Application image
+    }
+}
+
+static void setversion(unsigned part, unsigned value)
+{
+	unsigned offset = get_img_offset(part) - CFG_BOOTN_UBOOT_SIZE;
+	size_t amt = nand_info[0].erasesize;
+	u_char* buf = malloc(amt);
+	int ret = nand_read(&nand_info[0], offset, &amt, buf);
+	if (ret == -EUCLEAN) {
+		printf("%s:0x%08x bit corrected.\n",__FUNCTION__,offset);
+		ret = 0;
+	}
+
+	if (ret != 0 || amt != nand_info[0].erasesize) {
+		printf ("%s: read failed (offset 0x%08x), %d (%d)\n",
+	          __FUNCTION__, offset ,ret, amt);
+		free(buf);
+		return;
+	}
+	ret = nand_erase(&nand_info[0], offset, amt);
+	if (ret != 0) {
+		printf ("%s: write failed (offset 0x%08x), %d\n",
+	          __FUNCTION__, offset ,ret);
+		free(buf);
+		return;
+	}
+	((aimage_v1_header_t *)buf)->usd = value;
+	ret = nand_write(&nand_info[0], offset, &amt, buf);
+	if (ret != 0 || amt != nand_info[0].erasesize)
+		printf ("%s: write failed (offset 0x%08x), %d (%d)\n",
+	          __FUNCTION__, offset ,ret, amt);
+	free(buf);
+	printf("Partition %d: Set Version: %d\n", part, value);
+}
+
+static char const* strnchr(char const* p, char const* endp, char chr)
+{
+    for (; p < endp; p++)
+        if (*p == chr)
+            return p;
+    return 0;
+}
+
+static int parse_custom_pkg_token(u_char const* buf)
+{
+    aimage_v1_header_t* hdr = (aimage_v1_header_t*) buf;
+    char const* p;
+    char const* ebuf;
+    char esn[16];
+    unsigned esn_len;
+
+    if (get_esn(esn) < 0)
+        return 0;
+    esn_len = strlen(esn);
+    p = (char const*) buf + hdr->data_start_offset;
+    ebuf = p + hdr->data_length;
+    while (p < ebuf) {
+        // Find end of line.
+        char const* eol = strnchr(p, ebuf, '\n');
+        if (!eol) eol = ebuf;
+        char const* sol = p;
+        p = eol + 1;
+        // Drop # and everything after it.
+        char const* cmt = strnchr(sol, eol, '#');
+        if (cmt) eol = cmt;
+        // Drop trailing space.
+        while (eol > sol && eol[-1] == ' ') --eol;
+        char const* eq = strnchr(sol, eol, '=');
+        if (!eq) { // line is an ESN
+            if (eol == sol+esn_len && strncmp(esn, sol, esn_len) == 0) {
+                printf("custom_pkg sideload allowed\n");
+                custom_pkg_sideload = 1;
+                return 1;
+            }
+        } else if (strncmp(sol, "version=", 8) == 0) {
+            char const* version = sol+8;
+            if (eol != version+1 || *version != '1') {
+                printf("custom_pkg token version %.*s not supported\n", eol-version, version);
+                return 0;
+            }
+        } else if (strncmp(sol, "platform=", 9) == 0) {
+            char const* platform = sol+9;
+            char const* rplatform = "austin";
+            if (eol != platform+strlen(rplatform) ||
+                strncmp(platform, rplatform, eol-platform)) {
+                printf("invalid platform %.*s\n", eol-platform, platform);
+                return 0;
+            }
+        } else if (strncmp(sol, "expires=", 8) == 0) {
+            char const* expires = sol+8;
+            if (strncmp(expires, BUILD_DATE, eol-expires) < 0) {
+                printf("custom_pkg token is expired (%.*s < %s)\n", eol-expires, expires, BUILD_DATE);
+                return 0;
+            }
+        }
+    }
+    printf("ESN %s not found in custom_pkg token\n", esn);
+    return 0;
+}
+
+extern unsigned int _stg2_release_id;
+extern unsigned int _stg2_active_partition;
+#define TWO_UBOOTS
+
+static int add_boot_animation_asset(char const* id, char const* filename, int flag)
+{
+	unsigned len;
+	u_char const * data;
+	data = get_custom_pkg_item(id, &len);
+	if (data)
+	{
+		// vc bootfs add filename addr len [descr]
+		char *bootfs_add = "vc bootfs add";
+		// the entire command string requires space for:
+		const size_t bootfs_add_cmd_size = strlen(bootfs_add) // the command itself
+		                                 + strlen(filename)   // 1st parameter, a filename
+		                                 + 8                  // 2nd parameter, a hexidecimal number
+		                                 + 8                  // 3rd parameter, a hexidecimal number
+		                                 + strlen(filename)   // 4th parameter, a desciption (the filename again)
+		                                 + 5;                 // whitepsace and null terminator
+		char *bootfs_add_cmd = malloc(bootfs_add_cmd_size);
+		sprintf(bootfs_add_cmd, "%s %s %x %x %s", bootfs_add, filename, (unsigned int)data, len, filename);
+		run_command(bootfs_add_cmd, flag);
+		free(bootfs_add_cmd);
+	}
+}
+
+static u_char* is_image_valid(unsigned part, cmd_tbl_t *cmdtp, int flag)
+{
+	unsigned part_start = get_img_offset(part);
+	unsigned offset, next_offset;
+	aimage_v1_header_t* hdr;
+	u_char* os_buf = 0, *firmware_buf = 0;
+	unsigned vc_loadaddr = 0;
+	static unsigned char brcm_dt_blob[16384];
+	char brcm_dt_blob_addr_str[11];
+
+	printf("check image in partition %d\n", part);
+	//set_rsa_public_key(_stg2_release_id);
+	// Check each aimage header.
+	for (offset = part_start;  (hdr = get_aimage_v1_header(offset)) != 0;  offset = next_offset) {
+		//printf(" aimage type %x at %x\n", hdr->type, offset);
+		next_offset = offset + (hdr->length & ~3);
+		switch (hdr->type) {
+		case IMG_TYPE_INITFS_CRAMFS:
+			//if (!verify_aimage(offset, hdr->length, IMG_TYPE_INITFS_CRAMFS))
+			//	goto fail;
+			break;
+		case IMG_TYPE_CRAMFS_AUTH:
+			// cramfs is authenticated by its Merkle tree,
+			// so we don't need to check it here.
+			break;
+		case IMG_TYPE_UIMAGE:
+			os_buf = verify_auimage(offset, hdr, 0, IMG_TYPE_UIMAGE, _stg2_release_id);
+			printf("Partition %d: Verify uimage: %s\n",part,os_buf?"Success":"Fail");
+			if (!os_buf) goto fail;
+			break;
+		case IMG_TYPE_FIRMWARE_BLOB:
+			vc_loadaddr = simple_strtoul(getenv("vcmem"),NULL,16);
+			firmware_buf = verify_auimage(offset, hdr, vc_loadaddr, IMG_TYPE_FIRMWARE_BLOB, _stg2_release_id);
+			printf("Partition %d: Verify firmware: %s\n",part,firmware_buf?"Success":"Fail");
+			if (!firmware_buf) goto fail;
+			memcpy(brcm_dt_blob, firmware_buf+256, sizeof(brcm_dt_blob));
+			memcpy(firmware_buf, firmware_buf+256+sizeof(brcm_dt_blob), hdr->length-256-sizeof(brcm_dt_blob));
+			set_working_fdt_addr(brcm_dt_blob);
+			sprintf(brcm_dt_blob_addr_str, "%p", &brcm_dt_blob);
+			setenv("brcm_dt_loadaddr", brcm_dt_blob_addr_str);
+			break;
+		case IMG_TYPE_APPFS_CRAMFS: // custom_pkg image
+			break;
+		case IMG_TYPE_BOOTDATA: {
+			u_char* buf = verify_auimage(offset, hdr, 0, hdr->type, hdr->release_id /* release_id not used */);
+			if (!buf) goto fail;
+			set_custom_pkg(buf + sizeof(aimage_v1_header_t));
+			break; }
+        case IMG_TYPE_CUSTOM_PKG_TOKEN: {
+            u_char* buf = verify_auimage(offset, hdr, 0, hdr->type, hdr->release_id);
+            if (!buf) {
+                printf("verify_auimage for custom_pkg_token failed\n");
+                goto fail;
+            }
+            if (!parse_custom_pkg_token(buf)) {
+                printf("invalid custom_pkg_token\n");
+                goto fail;
+            }
+            free(buf);
+            break; }
+		default:
+		   printf("Partition %d: unexpected firmware image type: %d\n", part, hdr->type);
+		   goto fail;
+		}
+	}
+    if (!vc_loadaddr) goto fail;
+    {
+        char *vc_run = "vc run";
+        char *vc_loadaddr = getenv("vcmem");
+        char *bootvc_cmd = malloc(strlen(vc_run) + strlen(vc_loadaddr) + 3);
+        sprintf(bootvc_cmd, "%s %s", vc_run, vc_loadaddr);
+        run_command("vc bootfs add_dtblob", flag);
+        add_boot_animation_asset("h264_intro", "splash0.h264", flag);
+        add_boot_animation_asset("aac_intro", "splash0.aac", flag);
+        add_boot_animation_asset("h264_loop", "splash1.h264", flag);
+        add_boot_animation_asset("aac_loop", "splash1.aac", flag);
+        run_command(bootvc_cmd, flag);
+        free(bootvc_cmd);
+    }
+	printk("partition %d: %s\n", part, os_buf ? "OK" : "no uimage!");
+	return os_buf;
+
+ fail:
+	printk("image in partition %d FAILED\n", part);
+	if (os_buf) free(os_buf);
+	if (firmware_buf) free(firmware_buf);
+	return 0;
+}
+
+static void append_gpio_state(void)
+{
+    char buf[40];
+    unsigned int hr = gpio_get_value(5);
+    sprintf(buf, " hardreset=%u", hr);
+    append_to_bootargs(buf);
+
+//    if (PNX833X_REGFIELD(RESET_CAUSE, WATCHDOG) != 0)
+//    {
+//        append_to_bootargs(" wdrst");
+//    }
+//
+    // Flash ack to the user on factory reset
+    if (!hr)
+    {
+        int i;
+        for(i = 0; i < 5; i++)
+        {
+            gpio_set_led_on_off(1);    // ON
+            udelay(100000);            // 100ms
+            gpio_set_led_on_off(0);    // OFF
+            udelay(100000);            // 100ms
+        }
+    }
+}
+
+static inline int is_hexchar(char ch)
+{
+    if (ch >= '0' && ch <= '9') return 1;
+    if (ch >= 'a' && ch <= 'f') return 1;
+    if (ch >= 'A' && ch <= 'F') return 1;
+    return 0;
+}
+
+static void append_roothash(int part)
+{
+    #define NAND_PAGE_SIZE 2048
+    #define ROOTHASH_CHARS 64
+
+    unsigned part_start = get_img_offset(part);
+    aimage_v1_header_t* hdr = get_aimage_v1_header(part_start);
+    char param[30 + ROOTHASH_CHARS];
+    char *paramp;
+    char *rp;
+    char *bootfs;
+    int i;
+
+    if (!hdr) {
+        printf("no aimage header for roothash\n");
+        return;
+    }
+
+    /* Don't set roothash for an NFS boot. */
+    bootfs = getenv("bootfs");
+    if (strcmp(bootfs, "nfs") == 0)
+        return;
+
+    strcpy(param, " roothash=");
+    paramp = param + strlen(param);
+    rp = _roothash;
+    for (i = 0;  i < ROOTHASH_CHARS;  i++) {
+        char ch = *rp++;
+        if (!is_hexchar(ch)) {
+            printf("*** invalid char 0x%02x in roothash[%d]\n", ch, i);
+            return;
+        }
+        *paramp++ = ch;
+    }
+    *paramp = '\0';
+    append_to_bootargs(param);
+}
+
+extern int get_reset_reason(char* buf, int buflen);
+
+static void append_reset_reason(void)
+{
+    char reason[16];
+    char param[32];
+
+    if (get_reset_reason(reason, sizeof(reason)) < 0)
+        return;
+    strcpy(param, " reset=");
+    strcat(param, reason);
+    append_to_bootargs(param);
+}
+
+
+static void boot_auimage(cmd_tbl_t *cmdtp, int flag, u_char* buf, unsigned part)
+{
+	ulong orig = load_addr;
+    aimage_v1_header_t *hdr = (aimage_v1_header_t*)buf;
+
+    append_gpio_state();
+    set_led(part);
+	load_addr = (ulong) aimage_v1_start_of_image_data(hdr);
+	append_mtdparts(part);
+	append_ethaddr();
+    append_reset_reason();
+	append_roothash(part);
+    if (custom_pkg_sideload)
+        append_to_bootargs(" custom_pkg_sideload=1");
+	if (hdr->release_id == 0 && !config_noaccess())
+		prepend_to_bootargs("dev=1 console=ttyS0,115200 ");
+	do_bootm (cmdtp, flag, 0, 0);
+	load_addr = orig;
+	free(buf);
+}
+
+static int get_image_version(unsigned part, unsigned* ver)
+{
+	unsigned part_start = get_img_offset(part) - CFG_BOOTN_UBOOT_SIZE;
+	aimage_v1_header_t* hdr = get_aimage_v1_header(part_start);
+
+	if (!hdr) return 0;
+	*ver = hdr->usd;
+	printf("Image %d: Version %d\n", part, *ver);
+	return 1;
+}
+
+int do_bootn (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+#ifdef TWO_UBOOTS
+	unsigned j = _stg2_active_partition;
+	unsigned other_version, my_version;
+	u_char* buf;
+
+	// this probably the image that will get booted. so set the led
+	// assuming this. This avoids having the led set wrong for the duration of the
+	// iamge validation below. If the image is invalid, the led gets set again
+	// prior to the real boot above
+	set_led(j);
+
+	buf = is_image_valid(j, cmdtp, flag);
+	if (buf) {
+		unsigned len;
+		u_char const* info = get_custom_pkg_item("info", &len);
+		if (info)
+			printf("custom_pkg info: %.*s\n", len, (char const*) info);
+		else
+			printf("custom_pkg info NOT FOUND!\n"); 
+		printf("booting kernel\n");
+		boot_auimage(cmdtp,flag,buf,j);
+	}
+	if (get_image_version(!j, &other_version) &&
+	    get_image_version(j, &my_version) &&
+	    my_version != other_version + 1 && 
+	    other_version)
+		setversion(j, other_version + 1);
+	for (j=0;j<60;j++) { // prevent the unit from cyling too fast in worst-case scenario
+		printf("%d",j%10);
+		udelay(1000000);
+	}
+	do_reset(0,0,0,0);
+	while (1) ;
+	return 0;
+#else
+	unsigned ver[2], i, j;
+	int has_hdr[2];
+	u_char* buf;
+
+	for (i=0;i<2;i++) has_hdr[i] = get_image_version(i,ver+i);
+	j = has_hdr[1] && (!has_hdr[0] || ver[1] < ver[0]);
+
+    // this probably the image that will get booted. so set the led
+    // assuming this. This avoids having the led set wrong for the duration of the
+    // iamge validation below. If the image is invalid, the led gets set again
+    // prior to the real boot above
+    set_led(j);
+
+	for (i=0;i<2;i++,j=!j) {
+		buf = is_image_valid(j, cmdtp, flag);
+		if ((ver[j] == 0 || !buf) && has_hdr[j])
+			setversion(j,has_hdr[!j] ? (ver[!j] + 1) : 1);
+		if (buf) boot_auimage(cmdtp,flag,buf,j);
+	}
+	do_reset(0,0,0,0);
+	while (1) ;
+	return 0;
+#endif
+}
+
+U_BOOT_CMD(
+	bootn, 1, 1, do_bootn,
+	"bootn   - find, verify and boot signed kernel image\n",
+	"   - find, verify and boot signed kernel image\n"
 );
 
 /*******************************************************************/

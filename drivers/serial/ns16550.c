@@ -9,6 +9,7 @@
 #include <watchdog.h>
 #include <linux/types.h>
 #include <asm/io.h>
+#include <common.h>
 
 #define UART_LCRVAL UART_LCR_8N1		/* 8 data, 1 stop, no parity */
 #define UART_MCRVAL (UART_MCR_DTR | \
@@ -28,11 +29,37 @@
 #define CONFIG_SYS_NS16550_IER  0x00
 #endif /* CONFIG_SYS_NS16550_IER */
 
+#ifdef CONFIG_BCM59055_WDT
+extern void bcm59055_wdt_reset(void);
+#endif
+
 void NS16550_init (NS16550_t com_port, int baud_divisor)
 {
+#if defined(CONFIG_KONA)
+	serial_out(CONFIG_SYS_NS16550_IER, &com_port->ier);
+
+	serial_out(UART_LCR_BKSE | UART_LCRVAL, (ulong)&com_port->lcr);
+	serial_out(0, &com_port->dll);
+	serial_out(0, &com_port->dlm);
+	serial_out(UART_LCRVAL, &com_port->lcr);
+
+        // Enable loopback to overcome bigisland FPGA problems...	
+	serial_out(UART_MCRVAL | 0x10 , &com_port->mcr); // serial_out(UART_MCRVAL, &com_port->mcr);
+	serial_out(UART_FCRVAL, &com_port->fcr);
+
+	serial_out(UART_LCR_BKSE | UART_LCRVAL, &com_port->lcr);
+	serial_out(baud_divisor & 0xff, &com_port->dll);
+	serial_out((baud_divisor >> 8) & 0xff, &com_port->dlm);
+	serial_out(UART_LCRVAL, &com_port->lcr);
+
+	unsigned int temp = serial_in(&com_port->mcr) ;
+	serial_out(temp & ~0x30 , &com_port->mcr); 
+	udelay(100) ;
+	
+#else  // else of CONFIG_KONA
 	serial_out(CONFIG_SYS_NS16550_IER, &com_port->ier);
 #if defined(CONFIG_OMAP) && !defined(CONFIG_OMAP3_ZOOM2)
-	serial_out(0x7, &com_port->mdr1);	/* mode select reset TL16C750*/
+	serial_out(0x7, &com_port->mdr1);       /* mode select reset TL16C750*/
 #endif
 	serial_out(UART_LCR_BKSE | UART_LCRVAL, (ulong)&com_port->lcr);
 	serial_out(0, &com_port->dll);
@@ -51,6 +78,7 @@ void NS16550_init (NS16550_t com_port, int baud_divisor)
 	serial_out(0, &com_port->mdr1);	/* /16 is proper to hit 115200 with 48MHz */
 #endif
 #endif /* CONFIG_OMAP */
+#endif  // End of CONFIG_KONA
 }
 
 #ifndef CONFIG_NS16550_MIN_FUNCTIONS
@@ -94,6 +122,9 @@ char NS16550_getc (NS16550_t com_port)
 		usbtty_poll();
 #endif
 		WATCHDOG_RESET();
+#ifdef CONFIG_BCM59055_WDT
+		bcm59055_wdt_reset();
+#endif
 	}
 	return serial_in(&com_port->rbr);
 }

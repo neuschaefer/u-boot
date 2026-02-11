@@ -54,7 +54,7 @@
 	_min1 < _min2 ? _min1 : _min2; })
 
 struct envdev_s {
-	char devname[16];		/* Device name */
+	char devname[64];		/* Device name */
 	ulong devoff;			/* Device offset */
 	ulong env_size;			/* environment size */
 	ulong erase_size;		/* device erase size */
@@ -210,6 +210,27 @@ static char default_environment[] = {
 static int flash_io (int mode);
 static char *envmatch (char * s1, char * s2);
 static int parse_config (void);
+
+
+/*
+ * Returns 1 if it is MTD and 0 if it is not MTD
+ */
+static int fd_is_mtd(int fd)
+{
+	struct mtd_info_user mtdinfo;
+	int rc;
+
+	rc = ioctl (fd, MEMGETINFO, &mtdinfo);
+	if (rc < 0) {
+		// Failed MEMGETINFO, not MTD
+		return 0;
+	} else {
+		// Succeeded, MTD
+		return 1;
+	}
+}
+
+
 
 #if defined(CONFIG_FILE)
 static int get_config (char *);
@@ -836,31 +857,33 @@ static int flash_write_buf (int dev, int fd, void *buf, size_t count,
 
 	/* This only runs once on NOR flash and SPI-dataflash */
 	while (processed < write_total) {
-		rc = flash_bad_block (fd, mtd_type, &blockstart);
-		if (rc < 0)		/* block test failed */
-			return rc;
+		if (mtd_type != MTD_ABSENT)  {
+			rc = flash_bad_block (fd, mtd_type, &blockstart);
+			if (rc < 0)		/* block test failed */
+				return rc;
 
-		if (blockstart + erasesize > top_of_range) {
-			fprintf (stderr, "End of range reached, aborting\n");
-			return -1;
-		}
-
-		if (rc) {		/* block is bad */
-			blockstart += blocklen;
-			continue;
-		}
-
-		erase.start = blockstart;
-		ioctl (fd, MEMUNLOCK, &erase);
-
-		/* Dataflash does not need an explicit erase cycle */
-		if (mtd_type != MTD_DATAFLASH)
-			if (ioctl (fd, MEMERASE, &erase) != 0) {
-				fprintf (stderr, "MTD erase error on %s: %s\n",
-					 DEVNAME (dev),
-					 strerror (errno));
+			if (blockstart + erasesize > top_of_range) {
+				fprintf (stderr, "End of range reached, aborting\n");
 				return -1;
 			}
+
+			if (rc) {		/* block is bad */
+				blockstart += blocklen;
+				continue;
+			}
+
+			erase.start = blockstart;
+			ioctl (fd, MEMUNLOCK, &erase);
+
+			/* Dataflash does not need an explicit erase cycle */
+			if (mtd_type != MTD_DATAFLASH)
+				if (ioctl (fd, MEMERASE, &erase) != 0) {
+					fprintf (stderr, "MTD erase error on %s: %s\n",
+						 DEVNAME (dev),
+						 strerror (errno));
+					return -1;
+				}
+		}
 
 		if (lseek (fd, blockstart, SEEK_SET) == -1) {
 			fprintf (stderr,
@@ -878,7 +901,8 @@ static int flash_write_buf (int dev, int fd, void *buf, size_t count,
 			return -1;
 		}
 
-		ioctl (fd, MEMLOCK, &erase);
+		if (mtd_type != MTD_ABSENT)
+			ioctl (fd, MEMLOCK, &erase);
 
 		processed  += blocklen;
 		block_seek = 0;
@@ -964,18 +988,30 @@ static int flash_read (int fd)
 {
 	struct mtd_info_user mtdinfo;
 	int rc;
+	int is_mtd;
 
-	rc = ioctl (fd, MEMGETINFO, &mtdinfo);
-	if (rc < 0) {
-		perror ("Cannot get MTD information");
-		return -1;
-	}
+	is_mtd = fd_is_mtd(fd);
 
-	if (mtdinfo.type != MTD_NORFLASH &&
-	    mtdinfo.type != MTD_NANDFLASH &&
-	    mtdinfo.type != MTD_DATAFLASH) {
-		fprintf (stderr, "Unsupported flash type %u\n", mtdinfo.type);
-		return -1;
+	if (is_mtd) {
+		rc = ioctl (fd, MEMGETINFO, &mtdinfo);
+		if (rc < 0) {
+			perror ("Cannot get MTD information");
+			return -1;
+		}
+
+		if (mtdinfo.type != MTD_NORFLASH &&
+		    mtdinfo.type != MTD_NANDFLASH &&
+		    mtdinfo.type != MTD_DATAFLASH) {
+			fprintf (stderr, "Unsupported flash type %u\n", mtdinfo.type);
+			return -1;
+		}
+	} else {
+		/*
+		 * Kinda hacky assuming !MTD means == MMC
+		 * but seems to be the easiest way to
+		 * determine that.
+		 */
+		mtdinfo.type = MTD_ABSENT;
 	}
 
 	DEVTYPE(dev_current) = mtdinfo.type;

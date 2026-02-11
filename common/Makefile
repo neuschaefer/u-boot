@@ -64,6 +64,7 @@ COBJS-$(CONFIG_ENV_IS_IN_SPI_FLASH) += env_sf.o
 COBJS-$(CONFIG_ENV_IS_NOWHERE) += env_nowhere.o
 
 # command
+COBJS-y += cmd_malloc.o
 COBJS-$(CONFIG_CMD_AMBAPP) += cmd_ambapp.o
 COBJS-$(CONFIG_SOURCE) += cmd_source.o
 COBJS-$(CONFIG_CMD_SOURCE) += cmd_source.o
@@ -90,9 +91,14 @@ COBJS-$(CONFIG_CMD_EEPROM) += cmd_eeprom.o
 COBJS-$(CONFIG_CMD_ELF) += cmd_elf.o
 COBJS-$(CONFIG_SYS_HUSH_PARSER) += cmd_exit.o
 COBJS-$(CONFIG_CMD_EXT2) += cmd_ext2.o
+COBJS-$(CONFIG_FASTBOOT) += cmd_fastboot.o
+COBJS-$(CONFIG_FASTBOOT) += cmd_fastbootstd.o
+COBJS-$(CONFIG_CMD_GPT) += cmd_gpt.o efi.o
+COBJS-$(CONFIG_CMD_GPT) += cmd_memstrcmp.o
 COBJS-$(CONFIG_CMD_FAT) += cmd_fat.o
 COBJS-$(CONFIG_CMD_FDC)$(CONFIG_CMD_FDOS) += cmd_fdc.o
 COBJS-$(CONFIG_OF_LIBFDT) += cmd_fdt.o fdt_support.o
+COBJS-$(CONFIG_OF_LIBFDT_CMD) += cmd_fdt.o fdt_support.o
 COBJS-$(CONFIG_CMD_FDOS) += cmd_fdos.o
 COBJS-$(CONFIG_CMD_FLASH) += cmd_flash.o
 ifdef CONFIG_FPGA
@@ -112,6 +118,7 @@ COBJS-y += cmd_load.o
 COBJS-$(CONFIG_LOGBUFFER) += cmd_log.o
 COBJS-$(CONFIG_ID_EEPROM) += cmd_mac.o
 COBJS-$(CONFIG_CMD_MD5SUM) += cmd_md5sum.o
+COBJS-$(CONFIG_CMD_MATH) += cmd_math.o
 COBJS-$(CONFIG_CMD_MEMORY) += cmd_mem.o
 COBJS-$(CONFIG_CMD_MFSL) += cmd_mfsl.o
 COBJS-$(CONFIG_CMD_MG_DISK) += cmd_mgdisk.o
@@ -131,6 +138,8 @@ COBJS-$(CONFIG_CMD_NAND) += cmd_nand.o
 COBJS-$(CONFIG_CMD_NET) += cmd_net.o
 COBJS-$(CONFIG_CMD_ONENAND) += cmd_onenand.o
 COBJS-$(CONFIG_CMD_OTP) += cmd_otp.o
+COBJS-$(CONFIG_CMD_GPIO) += cmd_gpio.o
+COBJS-$(CONFIG_CMD_LOADIMG) += cmd_loadimg.o
 ifdef CONFIG_PCI
 COBJS-$(CONFIG_CMD_PCI) += cmd_pci.o
 endif
@@ -160,6 +169,7 @@ COBJS-$(CONFIG_USB_STORAGE) += usb_storage.o
 endif
 COBJS-$(CONFIG_CMD_XIMG) += cmd_ximg.o
 COBJS-$(CONFIG_YAFFS2) += cmd_yaffs2.o
+COBJS-$(CONFIG_CMD_STRCMP) += cmd_strcmp.o
 
 # others
 COBJS-$(CONFIG_DDR_SPD) += ddr_spd.o
@@ -173,6 +183,9 @@ COBJS-$(CONFIG_LYNXKDI) += lynxkdi.o
 COBJS-$(CONFIG_MODEM_SUPPORT) += modem.o
 COBJS-$(CONFIG_UPDATE_TFTP) += update.o
 COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
+COBJS-$(CONFIG_CMD_SETIMGSIZE) += cmd_setimgsize.o
+COBJS-$(CONFIG_HW_WATCHDOG) += cmd_wd.o
+COBJS-$(CONFIG_CMD_SPM) += cmd_spm.o
 
 
 COBJS	:= $(sort $(COBJS-y))

@@ -43,6 +43,11 @@ _start: b	reset
 	ldr	pc, _irq
 	ldr	pc, _fiq
 
+#ifdef CONFIG_LOADED_BY_CBOOT
+	.word	0xbabeface
+	.word	_end - _start
+#endif
+
 _undefined_instruction: .word undefined_instruction
 _software_interrupt:	.word software_interrupt
 _prefetch_abort:	.word prefetch_abort
@@ -113,6 +118,27 @@ FIQ_STACK_START:
 .globl IRQ_STACK_START_IN
 IRQ_STACK_START_IN:
 	.word	0x0badc0de
+
+.globl _stg2_release_id
+_stg2_release_id:
+        .word 0
+
+.globl _stg2_active_partition
+_stg2_active_partition:
+        .word 0
+
+.globl _stg2_secure_boot
+_stg2_secure_boot:
+        .word 0
+
+/* _roothash is expected to be at addr 0x70. If it moves, you must modify updateimg in top Makefile. */
+.globl _roothash
+_roothash:
+	.skip 64
+
+.globl _bootdata_digest
+_bootdata_digest:
+    .skip 32 /* only need 20 for SHA1 */
 
 /*
  * the actual reset code

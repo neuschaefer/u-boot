@@ -122,9 +122,34 @@ struct usb_linux_config_descriptor {
 #define	ehci_readl(x)		(*((volatile u32 *)(x)))
 #define ehci_writel(a, b)	(*((volatile u32 *)(a)) = ((volatile u32)b))
 #else
-#define ehci_readl(x)		cpu_to_le32((*((volatile u32 *)(x))))
+
+#if 0
+
 #define ehci_writel(a, b)	(*((volatile u32 *)(a)) = \
 					cpu_to_le32(((volatile u32)b)))
+#define ehci_readl(x)		cpu_to_le32((*((volatile u32 *)(x))))
+
+#else
+
+static inline u32 ehci_readl(volatile u32 *a)
+{
+	u32 val;
+
+	val = cpu_to_le32(*a);
+	//printf("%s: [0x%p] = 0x%08x\n", __func__, a, val);
+	return val;
+}
+
+static inline void ehci_writel(volatile u32 *a, volatile u32 b)	
+{
+	volatile u32 val = cpu_to_le32(b);
+	udelay(1);	/* This is critical to properly resetting the hub... */
+	*a = val;
+	//printf("%s: [0x%p] = 0x%08x\n", __func__, a, val);
+}
+
+#endif
+
 #endif
 
 #if defined CONFIG_EHCI_MMIO_BIG_ENDIAN

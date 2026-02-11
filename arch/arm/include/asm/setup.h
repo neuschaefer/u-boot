@@ -188,6 +188,20 @@ struct tag_cmdline {
 	char	cmdline[1];	/* this is the minimum size */
 };
 
+#ifdef CONFIG_BRCM_DTBLOB_TAG
+#define ATAG_DTBLOB	0x54411122
+struct tag_blob {
+	unsigned char	blob[1];	/* this is the minimum size */
+};
+#endif
+
+#define ATAG_ESN	0x54412100
+
+struct tag_esn {
+	u8 esn_mac[10];
+	u8 extra[32];
+};
+
 /* acorn RiscPC specific information */
 #define ATAG_ACORN	0x41000101
 
@@ -217,7 +231,9 @@ struct tag {
 		struct tag_revision	revision;
 		struct tag_videolfb	videolfb;
 		struct tag_cmdline	cmdline;
-
+#ifdef CONFIG_BRCM_DTBLOB_TAG
+		struct tag_blob		blob;
+#endif
 		/*
 		 * Acorn specific
 		 */
@@ -227,6 +243,7 @@ struct tag {
 		 * DC21285 specific
 		 */
 		struct tag_memclk	memclk;
+		struct tag_esn		esn;
 	} u;
 };
 
@@ -244,7 +261,7 @@ static struct tagtable __tagtable_##fn __tag = { tag, fn }
 		<= (tag)->hdr.size * 4)
 
 #define tag_next(t)	((struct tag *)((u32 *)(t) + (t)->hdr.size))
-#define tag_size(type)	((sizeof(struct tag_header) + sizeof(struct type)) >> 2)
+#define tag_size(type)	((sizeof(struct tag_header) + sizeof(struct type) + 3) >> 2)
 
 #define for_each_tag(t,base)		\
 	for (t = base; t->hdr.size; t = tag_next(t))

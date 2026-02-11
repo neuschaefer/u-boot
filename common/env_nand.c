@@ -57,6 +57,7 @@
 
 /* references to names in env_common.c */
 extern uchar default_environment[];
+extern int config_noaccess(void);
 
 char *env_name_spec = "NAND";
 
@@ -161,6 +162,9 @@ int writeenv(size_t offset, u_char *buf)
 
 	u_char *char_ptr;
 
+	if (config_noaccess())
+		return 0;
+
 	blocksize = nand_info[0].erasesize;
 	len = min(blocksize, CONFIG_ENV_SIZE);
 
@@ -192,6 +196,9 @@ int saveenv(void)
 	char	*res;
 	int	ret = 0;
 	nand_erase_options_t nand_erase_options;
+
+	if (config_noaccess())
+		return 0;
 
 	memset(&nand_erase_options, 0, sizeof(nand_erase_options));
 	nand_erase_options.length = CONFIG_ENV_RANGE;
@@ -247,6 +254,9 @@ int saveenv(void)
 	char	*res;
 	nand_erase_options_t nand_erase_options;
 
+	if (config_noaccess())
+		return 0;
+
 	memset(&nand_erase_options, 0, sizeof(nand_erase_options));
 	nand_erase_options.length = CONFIG_ENV_RANGE;
 	nand_erase_options.offset = CONFIG_ENV_OFFSET;
@@ -285,6 +295,9 @@ int readenv(size_t offset, u_char * buf)
 	size_t blocksize, len;
 
 	u_char *char_ptr;
+
+	if (config_noaccess())
+		return 0;
 
 	blocksize = nand_info[0].erasesize;
 	if (!blocksize)
@@ -346,6 +359,11 @@ void env_relocate_spec(void)
 #if !defined(ENV_IS_EMBEDDED)
 	int crc1_ok = 0, crc2_ok = 0;
 	env_t *ep, *tmp_env1, *tmp_env2;
+
+	if (config_noaccess()) {
+		set_default_env("secure; no flash");
+		return;
+	}
 
 	tmp_env1 = (env_t *)malloc(CONFIG_ENV_SIZE);
 	tmp_env2 = (env_t *)malloc(CONFIG_ENV_SIZE);
@@ -417,6 +435,11 @@ void env_relocate_spec (void)
 #if !defined(ENV_IS_EMBEDDED)
 	int ret;
 	char buf[CONFIG_ENV_SIZE];
+
+	if (config_noaccess()) {
+		set_default_env("secure; no flash");
+		return;
+	}
 
 #if defined(CONFIG_ENV_OFFSET_OOB)
 	ret = get_nand_env_oob(&nand_info[0], &nand_env_oob_offset);

@@ -90,4 +90,9 @@
 	void reset_4xx_watchdog(void);
 #endif
 
+#if defined(CONFIG_BCM59055_WDT)
+	extern void bcm59055_wdt_reset(void);
+	//#define WATCHDOG_RESET bcm59055_wdt_reset
+#endif
+
 #endif /* _WATCHDOG_H_ */

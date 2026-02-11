@@ -26,6 +26,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libgeneric.o
 
 COBJS-$(CONFIG_ADDR_MAP) += addr_map.o
+COBJS-y += aimage_uboot.o
 COBJS-$(CONFIG_BZIP2) += bzlib.o
 COBJS-$(CONFIG_BZIP2) += bzlib_crctable.o
 COBJS-$(CONFIG_BZIP2) += bzlib_decompress.o
@@ -46,6 +47,7 @@ COBJS-y += ldiv.o
 COBJS-$(CONFIG_MD5) += md5.o
 COBJS-y += net_utils.o
 COBJS-y += qsort.o
+COBJS-y += sha.o
 COBJS-$(CONFIG_SHA1) += sha1.o
 COBJS-$(CONFIG_SHA256) += sha256.o
 COBJS-y += string.o

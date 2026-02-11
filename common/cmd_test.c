@@ -171,3 +171,23 @@ U_BOOT_CMD(
 	"do nothing, successfully",
 	NULL
 );
+
+int do_testenv(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	char *s;
+	/* Returns 0 if environment variable exists (is nonzero length), else 1 */
+	if (argc != 2) {
+		printf("Syntax: testenv name\n");
+		return 1;
+	}
+	if (((s = getenv(argv[1])) != NULL) && (strlen(s) != 0)) {
+		return 0;
+	}
+	return 1;
+}
+
+U_BOOT_CMD(
+	testenv,	CONFIG_SYS_MAXARGS,	1,	do_testenv,
+	"test if an environment variable exists",
+	NULL
+);

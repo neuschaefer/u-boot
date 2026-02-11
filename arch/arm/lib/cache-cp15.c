@@ -52,7 +52,7 @@ static inline void dram_bank_mmu_setup(int bank)
 
 	debug("%s: bank: %d\n", __func__, bank);
 	for (i = bd->bi_dram[bank].start >> 20;
-	     i < (bd->bi_dram[bank].start + bd->bi_dram[bank].size) >> 20;
+	     i < ((bd->bi_dram[bank].start + bd->bi_dram[bank].size) >> 20)-1;
 	     i++) {
 		page_table[i] = i << 20 | (3 << 10) | CACHE_SETUP;
 	}

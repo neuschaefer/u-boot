@@ -58,6 +58,11 @@ static ulong get_sp(void);
 static int bootm_linux_fdt(int machid, bootm_headers_t *images);
 #endif
 
+#ifdef CONFIG_BRCM_DTBLOB_TAG
+static void setup_dtblob_tag (void* blob);
+#endif
+
+
 void arch_lmb_reserve(struct lmb *lmb)
 {
 	ulong sp;
@@ -137,6 +142,7 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 #ifdef CONFIG_REVISION_TAG
 	setup_revision_tag (&params);
 #endif
+	setup_esn_tag(&params);
 #ifdef CONFIG_SETUP_MEMORY_TAGS
 	setup_memory_tags (bd);
 #endif
@@ -147,10 +153,39 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 	if (images->rd_start && images->rd_end)
 		setup_initrd_tag (bd, images->rd_start, images->rd_end);
 #endif
+
+#ifdef CONFIG_BRCM_DTBLOB_TAG
+#ifdef CONFIG_BRCM_DT_LOADADDR
+	setup_dtblob_tag ((void*) CONFIG_BRCM_DT_LOADADDR);
+#else
+	{
+		/* Try to find an environment variable brcm_dt_loadaddr */
+		/* Presumably this was allocated in u-boot to avoid hardcoding */
+		char *loadaddrstr; 
+		int loadaddr;
+		loadaddrstr = getenv ("brcm_dt_loadaddr");
+		if (loadaddrstr == NULL) {
+			printf("Env variable brcm_dt_loadaddr not set\n");
+		} else {
+			loadaddr = (int)simple_strtoul(loadaddrstr, NULL, 16);
+			printf("loadaddrstr = \'%s\' loadaddr=0x%x\n", loadaddrstr, loadaddr);
+			setup_dtblob_tag ((void*) loadaddr);
+		}
+	}
+
+#endif
+#endif
+
 	setup_end_tag(bd);
 #endif
 
 	announce_and_cleanup();
+
+#ifdef CONFIG_BRCM_KERNEL_ENTRY_HOOK
+	/* For low level debug using LEDs for example to track progress without uarts */
+extern void kernel_entry_hook(void);
+	kernel_entry_hook();
+#endif
 
 	kernel_entry(0, machid, bd->bi_boot_params);
 	/* does not return */
@@ -249,6 +284,9 @@ static void setup_memory_tags (bd_t *bd)
 		params->u.mem.start = bd->bi_dram[i].start;
 		params->u.mem.size = bd->bi_dram[i].size;
 
+		debug ("setup_memory_tags: u.mem.start: 0x%lx\n", (ulong) params->u.mem.start);
+		debug ("setup_memory_tags: u.mem.size: 0x%lx\n", (ulong) params->u.mem.size);
+
 		params = tag_next (params);
 	}
 }
@@ -297,6 +335,36 @@ static void setup_initrd_tag (bd_t *bd, ulong initrd_start, ulong initrd_end)
 }
 #endif /* CONFIG_INITRD_TAG */
 
+#ifdef CONFIG_BRCM_DTBLOB_TAG
+void setup_dtblob_tag(void* blob)
+{
+	struct fdt_header *dt;
+	uint32_t size;
+
+	printf("Setting up dt-blob tag ...@0x%x from 0x%x\n", (unsigned int) params, (unsigned int) blob);
+
+	/* check device tree validity */
+	dt = (struct fdt_header *)blob;
+	if (be32_to_cpu(dt->magic) != FDT_MAGIC) {
+		printf("Invalid dt-blob!\n");
+		return;
+	}
+
+	size = be32_to_cpu(dt->totalsize);
+
+	params->hdr.tag = ATAG_DTBLOB;
+	/* size is for tag hd and dt blob */
+	params->hdr.size = (size >> 2) + 1 + 2;
+
+	/* copy the embedded blob */
+	printf("dt-blob size: %d bytes\n", size);
+	memcpy(params->u.blob.blob, (unsigned char *)blob, size);
+
+	params = tag_next (params);
+	printf("Done dt-blob tag, 0x%x\n", (unsigned int) params);
+}
+#endif
+
 #ifdef CONFIG_SERIAL_TAG
 void setup_serial_tag (struct tag **tmp)
 {
@@ -327,6 +395,18 @@ void setup_revision_tag(struct tag **in_params)
 	params = tag_next (params);
 }
 #endif  /* CONFIG_REVISION_TAG */
+
+extern u8 _esn_mac[10];
+extern u8 _esn_mac_extra[32];
+
+void setup_esn_tag(struct tag **in_params)
+{
+	params->hdr.tag = ATAG_ESN;
+	params->hdr.size = tag_size (tag_esn);
+	memcpy(params->u.esn.esn_mac,_esn_mac,10);
+	memcpy(params->u.esn.extra,_esn_mac_extra,32);
+	params = tag_next (params);
+}
 
 static void setup_end_tag (bd_t *bd)
 {

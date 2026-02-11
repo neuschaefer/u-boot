@@ -151,7 +151,7 @@ else
 ARFLAGS = crv
 endif
 RELFLAGS= $(PLATFORM_RELFLAGS)
-DBGFLAGS= -g # -DDEBUG
+DBGFLAGS= -g -DSTANDALONE # -DDEBUG
 OPTFLAGS= -Os #-fomit-frame-pointer
 
 OBJCFLAGS += --gap-fill=0xff
@@ -169,7 +169,7 @@ CPPFLAGS += -DRESET_VECTOR_ADDRESS=$(RESET_VECTOR_ADDRESS)
 endif
 
 ifneq ($(OBJTREE),$(SRCTREE))
-CPPFLAGS += -I$(OBJTREE)/include2 -I$(OBJTREE)/include
+CPPFLAGS += -I. -I$(OBJTREE)/include2 -I$(OBJTREE)/include
 endif
 
 CPPFLAGS += -I$(TOPDIR)/include
@@ -184,6 +184,10 @@ CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes
 endif
 
 CFLAGS += $(call cc-option,-fno-stack-protector)
+
+ifeq ($(ANDROID),y)
+CFLAGS += -DANDROID
+endif
 
 # $(CPPFLAGS) sets -g, which causes gcc to pass a suitable -g<format>
 # option to the assembler.

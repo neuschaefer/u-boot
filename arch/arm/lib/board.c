@@ -315,6 +315,8 @@ void board_init_f (ulong bootflag)
 	debug ("Reserving %dk for kernel logbuffer at %08lx\n", LOGBUFF_LEN, addr);
 #endif
 #endif
+	addr -= 1024*1024;
+	gd->eth_buffers = addr;
 
 #ifdef CONFIG_PRAM
 	/*
@@ -332,7 +334,7 @@ void board_init_f (ulong bootflag)
 
 	/* round down to next 64 kB limit */
 	addr &= ~(0x10000 - 1);
-
+	
 	gd->tlb_addr = addr;
 	debug ("TLB table at: %08lx\n", addr);
 #endif
@@ -413,7 +415,7 @@ void board_init_f (ulong bootflag)
 	gd->relocaddr = addr;
 	gd->start_addr_sp = addr_sp;
 	gd->reloc_off = addr - _TEXT_BASE;
-	debug ("relocation Offset is: %08lx\n", gd->reloc_off);
+	printf("Relocation Offset is: 0x%08lx\n", gd->reloc_off);
 	memcpy (id, (void *)gd, sizeof (gd_t));
 
 	relocate_code (addr_sp, id, addr);
@@ -497,6 +499,8 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	}
 #endif
 
+#define DEBUG
+
 #if defined(CONFIG_CMD_NAND)
 	puts ("NAND:  ");
 	nand_init();		/* go init the NAND */
@@ -577,16 +581,6 @@ void board_init_r (gd_t *id, ulong dest_addr)
 
 #ifdef CONFIG_BITBANGMII
 	bb_miiphy_init();
-#endif
-#if defined(CONFIG_CMD_NET)
-#if defined(CONFIG_NET_MULTI)
-	puts ("Net:   ");
-#endif
-	eth_initialize(gd->bd);
-#if defined(CONFIG_RESET_PHY_R)
-	debug ("Reset Ethernet PHY\n");
-	reset_phy();
-#endif
 #endif
 
 #ifdef CONFIG_POST

@@ -210,6 +210,10 @@ int eth_initialize(bd_t *bis)
 {
 	unsigned char env_enetaddr[6];
 	int eth_number = 0;
+	static initialized_already = 0;
+
+	if (initialized_already) return 0;
+	initialized_already = 1;
 
 	eth_devices = NULL;
 	eth_current = NULL;

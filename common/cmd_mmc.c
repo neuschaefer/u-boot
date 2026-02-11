@@ -142,8 +142,13 @@ U_BOOT_CMD(
 	""
 );
 
+extern int config_noaccess(void);
+
 int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	if (config_noaccess())
+		return 1;
+
 	if (argc < 2)
 		return cmd_usage(cmdtp);
 
@@ -251,7 +256,7 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return 1;
 		}
 
-		printf("\nMMC read: dev # %d, block # %d, count %d ... ",
+		printf("\nMMC read: dev # %d, block # %d, count %d ... \n",
 				curr_device, blk, cnt);
 
 		mmc_init(mmc);
@@ -277,7 +282,7 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return 1;
 		}
 
-		printf("\nMMC write: dev # %d, block # %d, count %d ... ",
+		printf("\nMMC write: dev # %d, block # %d, count %d ... \n",
 				curr_device, blk, cnt);
 
 		mmc_init(mmc);
@@ -289,6 +294,25 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return (n == cnt) ? 0 : 1;
 	}
 
+	/* Wipe Command - This can't access eMMC through the block_dev_desc */
+	else if (strcmp(argv[1], "wipe") == 0) {
+
+		struct mmc *mmc = find_mmc_device(curr_device);
+
+		if (!mmc) {
+			printf("no mmc device at slot %x\n", curr_device);
+			return 1;
+		}
+
+		printf("\nMMC wipe: dev # %d ... \n", curr_device);
+
+		mmc_init(mmc);
+
+		mmc_wipe(curr_device);
+
+		return 0;
+	}
+
 	return cmd_usage(cmdtp);
 }
 
@@ -297,6 +321,7 @@ U_BOOT_CMD(
 	"MMC sub system",
 	"read addr blk# cnt\n"
 	"mmc write addr blk# cnt\n"
+	"mmc wipe\n"
 	"mmc rescan\n"
 	"mmc part - lists available partition on current mmc device\n"
 	"mmc dev [dev] [part] - show or set current mmc device [partition]\n"

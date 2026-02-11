@@ -292,6 +292,20 @@ ifeq ($(SOC),s5pc2xx)
 LIBS += $(CPUDIR)/s5p-common/libs5p-common.o
 endif
 
+
+ifeq ($(SOC),capri)
+LIBS += $(CPUDIR)/kona-common/libkona-common.o
+endif
+ifeq ($(SOC),island)
+LIBS += $(CPUDIR)/kona-common/libkona-common.o
+endif
+ifeq ($(SOC),rhea)
+LIBS += $(CPUDIR)/kona-common/libkona-common.o
+endif
+ifeq ($(SOC),samoa)
+LIBS += $(CPUDIR)/kona-common/libkona-common.o
+endif
+
 LIBS := $(addprefix $(obj),$(sort $(LIBS)))
 .PHONY : $(LIBS) $(TIMESTAMP_FILE)
 
@@ -454,7 +468,7 @@ $(obj)mmc_spl/u-boot-mmc-spl.bin:	mmc_spl
 
 $(TIMESTAMP_FILE):
 		@LC_ALL=C date +'#define U_BOOT_DATE "%b %d %C%y"' > $@
-		@LC_ALL=C date +'#define U_BOOT_TIME "%T"' >> $@
+		@LC_ALL=C date +'#define U_BOOT_TIME "%T %Z"' >> $@
 
 updater:
 		$(MAKE) -C tools/updater all
@@ -1046,6 +1060,77 @@ smdk6400_config	:	unconfig
 	fi
 	@$(MKCONFIG) smdk6400 arm arm1176 smdk6400 samsung s3c64xx
 	@echo "CONFIG_NAND_U_BOOT = y" >> $(obj)include/config.mk
+
+
+bcm28150_islandsv_config \
+bcm28150_islandstoneli_config \
+bcm28150_islandstone_config : unconfig
+	@mkdir -p $(obj)include
+	@echo "#define CONFIG_ISLAND" >> $(obj)include/config.h
+	@if [ -n "$(findstring _islandstone_,$@)" ]; then                              \
+		echo "#define CONFIG_ISLAND_STONE" >> $(obj)include/config.h;          \
+	elif [ -n "$(findstring _islandstoneli_,$@)" ]; then                                \
+		echo "#define CONFIG_ISLAND_STONE_LI" >> $(obj)include/config.h;             \
+	elif [ -n "$(findstring _islandsv_,$@)" ]; then                                \
+		echo "#define CONFIG_ISLAND_SV" >> $(obj)include/config.h;             \
+	fi
+	@$(MKCONFIG) -n $@ -a islandboard arm armv7 islandboard broadcom island 
+
+bcm21654_rhearay_config \
+bcm21654_rhearay_edn1x_config \
+bcm21654_rhearay_edn2x_config \
+bcm21654_rhearay_edn2x_row_config \
+bcm21654_rhearay_edn2x_2093_config \
+bcm21654_clipper_config \
+bcm21654_clipper_edn1x_config \
+bcm21654_clipper_edn2x_config \
+bcm21654_faraday_eb10_config \
+bcm21654_rhealcberri_config \
+bcm21654_rheaberri_edn4x_config \
+bcm21654_rhearay_edn1x_2093_config \
+bcm21654_rheaberri_ednxx_config : unconfig
+	@mkdir -p $(obj)include
+	@echo "#define CONFIG_RHEA" >> $(obj)include/config.h
+	@if [ -n "$(findstring _rhealc,$@)" ]; then			\
+		echo "#define CONFIG_RHEA_LC_SILICON" >> $(obj)include/config.h;	\
+		echo "#define CONFIG_RHEALC_BERRI" >> $(obj)include/config.h;	\
+	fi
+	@if [ -n "$(findstring 2093,$@)" ]; then			\
+		echo "#define CONFIG_RHEA_LC_SILICON" >> $(obj)include/config.h;	\
+	fi
+	@if [ -n "$(findstring _rheaberri_,$@)" ]; then					\
+		echo "#define CONFIG_RHEA_BERRI" >> $(obj)include/config.h;		\
+	elif [ -n "$(findstring _clipper_edn1x_,$@)" ]; then				\
+		echo "#define CONFIG_RHEA_CLIPPER_EDN1X" >> $(obj)include/config.h;	\
+	elif [ -n "$(findstring _clipper_edn2x_,$@)" ]; then				\
+		echo "#define CONFIG_RHEA_CLIPPER_EDN1X" >> $(obj)include/config.h;	\
+	elif [ -n "$(findstring _clipper_,$@)" ]; then					\
+		echo "#define CONFIG_RHEA_CLIPPER" >> $(obj)include/config.h;		\
+	elif [ -n "$(findstring _faraday_eb10_,$@)" ]; then					\
+		echo "#define CONFIG_RHEA_FARADAY_EB10" >> $(obj)include/config.h;		\
+	elif [ -n "$(findstring _edn1x_,$@)" ]; then					\
+		echo "#define CONFIG_RHEA_RAY_EDN1X" >> $(obj)include/config.h;		\
+	elif [ -n "$(findstring _edn2x_,$@)" ]; then					\
+		echo "#define CONFIG_RHEA_RAY_EDN1X" >> $(obj)include/config.h;		\
+	elif [ -n "$(findstring _edn2x_row_,$@)" ]; then					\
+		echo "#define CONFIG_RHEA_RAY_EDN1X" >> $(obj)include/config.h;		\
+	else										\
+		echo "#define CONFIG_RHEA_RAY" >> $(obj)include/config.h;	\
+	fi
+	@$(MKCONFIG) -n $@ -a rheaboard arm armv7 rheaboard broadcom rhea
+
+bcm21455_samoaray_config \
+bcm21455_samoaberri_config \
+bcm21455_samoafpga_config : unconfig
+	@mkdir -p $(obj)include
+	@echo "#define CONFIG_SAMOA" >> $(obj)include/config.h
+	@if [ -n "$(findstring _samoafpga_,$@)" ]; then                                     \
+		echo "#define CONFIG_SAMOA_FPGA" >> $(obj)include/config.h;             \
+	else                                                                            \
+		echo "#define CONFIG_SAMOA_RAY" >> $(obj)include/config.h;       \
+	fi
+	@$(MKCONFIG) -n $@ -a samoaboard arm armv7 samoaboard broadcom samoa 
+
 
 #========================================================================
 # Nios

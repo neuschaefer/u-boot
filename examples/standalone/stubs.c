@@ -205,4 +205,9 @@ void app_startup(char * const *argv)
 #endif
 }
 
+#if defined(CONFIG_ARM)
+void __aeabi_unwind_cpp_pr0(void) {}
+void __aeabi_unwind_cpp_pr1(void) {}
+#endif
+
 #undef EXPORT_FUNC

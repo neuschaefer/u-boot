@@ -548,10 +548,10 @@ nfs_read_reply (uchar *pkt, unsigned len)
 		return -ntohl(rpc_pkt.u.reply.data[0]);;
 	}
 
-	if ((nfs_offset!=0) && !((nfs_offset) % (NFS_READ_SIZE/2*10*HASHES_PER_LINE))) {
+	if ((nfs_offset!=0) && !((nfs_offset) % (NFS_READ_SIZE/2*500*HASHES_PER_LINE))) {
 		puts ("\n\t ");
 	}
-	if (!(nfs_offset % ((NFS_READ_SIZE/2)*10))) {
+	if (!(nfs_offset % ((NFS_READ_SIZE/2)*500))) {
 		putc ('#');
 	}
 

@@ -36,6 +36,7 @@ COBJS-$(CONFIG_FTSMC020) += ftsmc020.o
 COBJS-$(CONFIG_FLASH_CFI_LEGACY) += jedec_flash.o
 COBJS-$(CONFIG_MW_EEPROM) += mw_eeprom.o
 COBJS-$(CONFIG_SPEARSMI) += spr_smi.o
+COBJS-$(CONFIG_BCMCAPRI_NAND) += bcmcapri_mtd.o nandbch.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

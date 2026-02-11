@@ -20,10 +20,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307 USA
 #
-PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float
+PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float -ffunction-sections
+PLATFORM_RELFLAGS += -DBUILD_DATE='"$(shell date +%Y%m%d)"'
 
 # Make ARMv5 to allow more compilers to work, even though its v7a.
-PLATFORM_CPPFLAGS += -march=armv5
+PLATFORM_CPPFLAGS += -mcpu=cortex-a9
 # =========================================================================
 #
 # Supply options according to compiler version
@@ -31,3 +32,5 @@ PLATFORM_CPPFLAGS += -march=armv5
 # =========================================================================
 PLATFORM_RELFLAGS +=$(call cc-option,-mshort-load-bytes,\
 		    $(call cc-option,-malignment-traps,))
+
+LDFLAGS_FINAL += --gc-sections

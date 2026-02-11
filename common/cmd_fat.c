@@ -32,18 +32,23 @@
 #include <part.h>
 #include <fat.h>
 
+extern int config_noaccess(void);
 
 int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	long size;
 	unsigned long offset;
 	unsigned long count;
+	unsigned long env_fileblocks = 0;
 	char buf [12];
 	block_dev_desc_t *dev_desc=NULL;
 	int dev=0;
 	int part=1;
 	char *ep;
 
+	if (config_noaccess())
+		return 1;
+	
 	if (argc < 5) {
 		printf( "usage: fatload <interface> <dev[:part]> "
 			"<addr> <filename> [bytes]\n");
@@ -85,6 +90,16 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	sprintf(buf, "%lX", size);
 	setenv("filesize", buf);
+   
+	sprintf(buf, "%lX", size/512 + 1);
+	setenv("fileblocks", buf);
+
+	env_fileblocks = size / FS_BLOCK_SIZE;
+	if (size & (FS_BLOCK_SIZE-1)) {		// Need one more block for data less than FS_BLOCK_SIZE
+		env_fileblocks++;
+	}
+	sprintf(buf, "%lX", env_fileblocks);
+	setenv("fileblocks", buf);
 
 	return 0;
 }

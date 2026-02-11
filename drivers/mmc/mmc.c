@@ -37,6 +37,10 @@
 #define CONFIG_SYS_MMC_MAX_BLK_COUNT 65535
 #endif
 
+#define BLK_THRESH 1024 /* Display threshold for progress */
+
+int mmc_delay_till_state(struct mmc *mmc, u8 state);
+
 static struct list_head mmc_devices;
 static int cur_dev_num = -1;
 
@@ -230,6 +234,56 @@ mmc_write_blocks(struct mmc *mmc, ulong start, lbaint_t blkcnt, const void*src)
 	return blkcnt;
 }
 
+/* A more flexible erase command gets really complicated since one has
+ * to read the CSD and EXT CDS to find discover the erase block sizes
+ */
+ulong mmc_wipe(int dev_num)
+{
+	struct mmc_cmd cmd;
+	struct mmc *mmc = find_mmc_device(dev_num);
+
+	if (!mmc) {
+		printf("Can not find mmc device\n");
+		return -1;
+	}
+
+	cmd.cmdidx = MMC_CMD_ERASE_GROUP_START;
+	cmd.cmdarg = 0;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.flags = 0;
+
+	if (mmc_send_cmd(mmc, &cmd, NULL)) {
+		printf("set_erase_group_start failed\n");
+		return 0;
+	}
+
+	cmd.cmdidx = MMC_CMD_ERASE_GROUP_END;
+	cmd.cmdarg = (mmc->capacity > 2147483648ull) ? (mmc->capacity - 1)/512 : mmc->capacity - 1;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.flags = 0;
+
+	if (mmc_send_cmd(mmc, &cmd, NULL)) {
+		printf("set_erase_group_end failed\n");
+		return 0;
+	}
+
+	cmd.cmdidx = MMC_CMD_ERASE;
+	cmd.cmdarg = 0;
+	cmd.resp_type = MMC_RSP_R1b;
+	cmd.flags = 0;
+
+	printf("Starting to wipe %llu bytes...\n", mmc->capacity);
+
+	if (mmc_send_cmd(mmc, &cmd, NULL)) {
+		printf("mmc_erase failed\n");
+		return 0;
+	}
+
+	printf("Done.\n");
+
+	return 0;
+}
+
 static ulong
 mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 {
@@ -249,6 +303,11 @@ mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 		blocks_todo -= cur;
 		start += cur;
 		src += cur * mmc->write_bl_len;
+		if (blkcnt > BLK_THRESH)
+		{
+			printf("\r%3d%% (%lu/%lu blocks)", 
+					 (int)((blkcnt - blocks_todo) * 100 / blkcnt), blkcnt - blocks_todo, blkcnt);
+		}
 	} while (blocks_todo > 0);
 
 	return blkcnt;
@@ -325,8 +384,17 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 		blocks_todo -= cur;
 		start += cur;
 		dst += cur * mmc->read_bl_len;
+		if (blkcnt > BLK_THRESH)
+		{
+			printf("\r%3d%% (%lu/%lu blocks)", 
+					 (int)((blkcnt - blocks_todo) * 100 / blkcnt), blkcnt - blocks_todo, blkcnt);
+		}
 	} while (blocks_todo > 0);
 
+	if (blkcnt > BLK_THRESH)
+	{
+		printf("\n"); /* Show each large fragment on a separate line for clearer display */
+	}
 	return blkcnt;
 }
 
@@ -445,10 +513,14 @@ int mmc_send_op_cond(struct mmc *mmc)
 	do {
 		cmd.cmdidx = MMC_CMD_SEND_OP_COND;
 		cmd.resp_type = MMC_RSP_R3;
+#if 0
 		cmd.cmdarg = (mmc_host_is_spi(mmc) ? 0 :
 				(mmc->voltages &
 				(cmd.response[0] & OCR_VOLTAGE_MASK)) |
 				(cmd.response[0] & OCR_ACCESS_MODE));
+#else
+		cmd.cmdarg = OCR_HCS | mmc->voltages;
+#endif
 		cmd.flags = 0;
 
 		err = mmc_send_cmd(mmc, &cmd, NULL);
@@ -503,6 +575,8 @@ int mmc_send_ext_csd(struct mmc *mmc, char *ext_csd)
 
 	err = mmc_send_cmd(mmc, &cmd, &data);
 
+	err |= mmc_delay_till_state(mmc, MMC_CARD_STATE_TRAN);
+
 	return err;
 }
 
@@ -529,6 +603,32 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 
 }
 
+int mmc_delay_till_state(struct mmc *mmc, u8 state)
+{
+	int timeout = 1000;
+	struct mmc_cmd cmd;
+	int err;
+
+	cmd.cmdidx = MMC_CMD_SEND_STATUS;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.cmdarg = mmc->rca << 16;
+	cmd.flags = 0;
+
+	do {
+		err = mmc_send_cmd(mmc, &cmd, NULL);
+		if(err)
+			return err;
+
+		udelay(100);
+	} while ((((cmd.response[0] >> 9) & 0xF) != state) && timeout--);
+
+	if (timeout <= 0)
+		return TIMEOUT;
+
+	return 0;
+}
+
+
 int mmc_change_freq(struct mmc *mmc)
 {
 	char ext_csd[512];
@@ -544,7 +644,15 @@ int mmc_change_freq(struct mmc *mmc)
 	if (mmc->version < MMC_VERSION_4)
 		return 0;
 
-	mmc->card_caps |= MMC_MODE_4BIT;
+#ifdef CONFIG_EMMC_8BIT
+	if (!IS_SD(mmc)) {
+		mmc->card_caps |= MMC_MODE_8BIT;
+	} else {
+#endif
+		mmc->card_caps |= MMC_MODE_4BIT;
+#ifdef CONFIG_EMMC_8BIT
+	}
+#endif
 
 	err = mmc_send_ext_csd(mmc, ext_csd);
 
@@ -553,10 +661,17 @@ int mmc_change_freq(struct mmc *mmc)
 
 	cardtype = ext_csd[196] & 0xf;
 
+	// Don't send High speed switch command for island in case of working on FPGA.
 	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_HS_TIMING, 1);
 
 	if (err)
 		return err;
+
+	err = mmc_delay_till_state(mmc, MMC_CARD_STATE_TRAN);
+
+	if (err)
+		return err;
+
 
 	/* Now check to see that it worked */
 	err = mmc_send_ext_csd(mmc, ext_csd);
@@ -762,10 +877,13 @@ void mmc_set_clock(struct mmc *mmc, uint clock)
 
 void mmc_set_bus_width(struct mmc *mmc, uint width)
 {
+
 	mmc->bus_width = width;
 
 	mmc_set_ios(mmc);
 }
+
+
 
 int mmc_startup(struct mmc *mmc)
 {
@@ -916,9 +1034,14 @@ int mmc_startup(struct mmc *mmc)
 		/* check  ext_csd version and capacity */
 		err = mmc_send_ext_csd(mmc, ext_csd);
 		if (!err & (ext_csd[192] >= 2)) {
-			mmc->capacity = ext_csd[212] << 0 | ext_csd[213] << 8 |
-					ext_csd[214] << 16 | ext_csd[215] << 24;
-			mmc->capacity *= 512;
+			unsigned long long ext_csd_blk_cnt =
+				(ext_csd[212] <<  0)|
+				(ext_csd[213] <<  8)|
+				(ext_csd[214] << 16)|
+				(ext_csd[215] << 24);
+
+			if (ext_csd_blk_cnt)
+				mmc->capacity = ext_csd_blk_cnt * 512;
 		}
 
 		/* store the partition info of emmc */
@@ -973,17 +1096,28 @@ int mmc_startup(struct mmc *mmc)
 			if (err)
 				return err;
 
+			err = mmc_delay_till_state(mmc, MMC_CARD_STATE_TRAN);
+
+			if (err)
+				return err;
+
 			mmc_set_bus_width(mmc, 4);
+
+
 		} else if (mmc->card_caps & MMC_MODE_8BIT) {
 			/* Set the card to use 8 bit*/
 			err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
 					EXT_CSD_BUS_WIDTH,
 					EXT_CSD_BUS_WIDTH_8);
 
+			err = mmc_delay_till_state(mmc, MMC_CARD_STATE_TRAN);
+
 			if (err)
 				return err;
 
 			mmc_set_bus_width(mmc, 8);
+
+
 		}
 
 		if (mmc->card_caps & MMC_MODE_HS) {

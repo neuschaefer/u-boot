@@ -196,7 +196,7 @@ static __inline__ int abortboot(int bootdelay)
 		gd->flags &= ~GD_FLG_SILENT;
 #endif
 
-	return abort;
+	return abort && !config_noaccess();
 }
 
 # else	/* !defined(CONFIG_AUTOBOOT_KEYED) */
@@ -258,10 +258,17 @@ static __inline__ int abortboot(int bootdelay)
 		gd->flags &= ~GD_FLG_SILENT;
 #endif
 
-	return abort;
+	return abort && !config_noaccess();
 }
 # endif	/* CONFIG_AUTOBOOT_KEYED */
 #endif	/* CONFIG_BOOTDELAY >= 0  */
+
+extern unsigned _stg2_secure_boot;
+
+int config_noaccess()
+{
+	return _stg2_secure_boot & 1;
+}
 
 /****************************************************************************/
 
@@ -376,7 +383,7 @@ void main_loop (void)
 
 	debug ("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
 
-	if (bootdelay >= 0 && s && !abortboot (bootdelay)) {
+	if (config_noaccess() || bootdelay >= 0 && s && !abortboot (bootdelay)) {
 # ifdef CONFIG_AUTOBOOT_KEYED
 		int prev = disable_ctrlc(1);	/* disable Control C checking */
 # endif

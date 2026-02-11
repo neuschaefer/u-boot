@@ -75,9 +75,37 @@
 #define MMC_CMD_READ_MULTIPLE_BLOCK	18
 #define MMC_CMD_WRITE_SINGLE_BLOCK	24
 #define MMC_CMD_WRITE_MULTIPLE_BLOCK	25
+#define MMC_CMD_ERASE_GROUP_START	35
+#define MMC_CMD_ERASE_GROUP_END  	36
+#define MMC_CMD_ERASE			38
+
 #define MMC_CMD_APP_CMD			55
 #define MMC_CMD_SPI_READ_OCR		58
 #define MMC_CMD_SPI_CRC_ON_OFF		59
+
+#define MMC_CARD_STATE_IDLE		0
+#define MMC_CARD_STATE_READY		1
+#define MMC_CARD_STATE_IDENT		2
+#define MMC_CARD_STATE_STBY		3
+#define MMC_CARD_STATE_TRAN		4
+#define MMC_CARD_STATE_DATA		5
+#define MMC_CARD_STATE_RCV		6
+#define MMC_CARD_STATE_PRG		7
+#define MMC_CARD_STATE_DIS		8
+#define MMC_CARD_STATE_BTST		9
+#define MMC_CARD_STATE_SLP		10
+
+#define MMC_CARD_STATE_IDLE		0
+#define MMC_CARD_STATE_READY		1
+#define MMC_CARD_STATE_IDENT		2
+#define MMC_CARD_STATE_STBY		3
+#define MMC_CARD_STATE_TRAN		4
+#define MMC_CARD_STATE_DATA		5
+#define MMC_CARD_STATE_RCV		6
+#define MMC_CARD_STATE_PRG		7
+#define MMC_CARD_STATE_DIS		8
+#define MMC_CARD_STATE_BTST		9
+#define MMC_CARD_STATE_SLP		10
 
 #define SD_CMD_SEND_RELATIVE_ADDR	3
 #define SD_CMD_SWITCH_FUNC		6
@@ -299,6 +327,8 @@ int mmc_initialize(bd_t *bis);
 int mmc_init(struct mmc *mmc);
 int mmc_read(struct mmc *mmc, u64 src, uchar *dst, int size);
 void mmc_set_clock(struct mmc *mmc, uint clock);
+ulong mmc_wipe(int dev_num);
+
 struct mmc *find_mmc_device(int dev_num);
 int mmc_set_dev(int dev_num);
 void print_mmc_devices(char separator);

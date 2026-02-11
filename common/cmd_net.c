@@ -167,6 +167,8 @@ static void netboot_update_env (void)
 #endif
 }
 
+DECLARE_GLOBAL_DATA_PTR;
+
 static int
 netboot_common (proto_t proto, cmd_tbl_t *cmdtp, int argc, char * const argv[])
 {
@@ -176,6 +178,7 @@ netboot_common (proto_t proto, cmd_tbl_t *cmdtp, int argc, char * const argv[])
 	int   size;
 	ulong addr;
 
+	eth_initialize(gd->bd);
 	/* pre-set load_addr */
 	if ((s = getenv("loadaddr")) != NULL) {
 		load_addr = simple_strtoul(s, NULL, 16);

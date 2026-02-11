@@ -1218,7 +1218,6 @@ static int generate_mtdparts_save(char *buf, u32 buflen)
 	return ret;
 }
 
-#if defined(CONFIG_CMD_MTDPARTS_SHOW_NET_SIZES)
 /**
  * Get the net size (w/o bad blocks) of the given partition.
  *
@@ -1240,7 +1239,6 @@ static uint64_t net_part_size(struct mtd_info *mtd, struct part_info *part)
 
 	return net_size;
 }
-#endif
 
 static void print_partition_table(void)
 {
@@ -1522,6 +1520,93 @@ static int spread_partitions(void)
 	return 0;
 }
 #endif /* CONFIG_CMD_MTDPARTS_SPREAD */
+
+/**
+ * Setup environment variables describing the named partition.
+ * mtdparts_addr 	base address
+ * mtdparts_netsize	requested size of partition
+ * mtdparts_size	actual size of partition (including bad blocks)
+ * mtdparts_name	name of partition
+ * mtdparts_entry	partition number
+ *
+ * @param id string describing partition name
+ * @return 0 on success, 1 otherwise
+ */
+static int setenv_vars(const char *id)
+{
+	u8 pnum;
+	struct mtd_device *dev;
+	struct part_info *part;
+	char buf[64];
+
+	if (find_dev_and_part(id, &dev, &pnum, &part) == 0) {
+
+		u32 net_size;
+		struct mtd_info *mtd;
+
+		if (get_mtd_info(dev->id->type, dev->id->num, &mtd))
+			return 1;
+
+		net_size = net_part_size(mtd, part);
+
+		sprintf(buf, "%x", part->offset);
+		setenv("mtdparts_addr", buf);
+
+		sprintf(buf, "%x", net_size);
+		setenv("mtdparts_netsize", buf);
+
+		sprintf(buf, "%x", part->size);
+		setenv("mtdparts_size", buf);
+
+		sprintf(buf, "%s", part->name);
+		setenv("mtdparts_name", buf);
+
+		sprintf(buf, "%u", pnum);
+		setenv("mtdparts_entry", buf);
+
+		return 0;
+	}
+
+	printf("partition %s not found\n", id);
+	return 1;
+}
+
+/**
+ * Setup environment variable listing all partition names.
+ * setenv mtdparts_list - list of all partition names found
+ *
+ * @return 0 on success, 1 otherwise
+ */
+static int enumerate_vars(void)
+{
+	struct list_head *dentry, *pentry;
+	struct part_info *part;
+	struct mtd_device *dev;
+	int part_num;
+        char part_list[2048];
+        part_list[0]=0;
+
+	list_for_each(dentry, &devices) {
+		dev = list_entry(dentry, struct mtd_device, link);
+		/* list partitions for given device */
+		part_num = 0;
+
+		list_for_each(pentry, &dev->parts) {
+
+			part = list_entry(pentry, struct part_info, link);
+			strcat(part_list, part->name);
+			strcat(part_list, " ");
+			part_num++;
+		}
+	}
+	setenv("mtdparts_list", part_list);
+
+	if (list_empty(&devices)) {
+		printf("no partitions defined\n");
+		return 1;
+	}
+	return 0;
+}
 
 /**
  * Accept character string describing mtd partitions and call device_parse()
@@ -2032,6 +2117,16 @@ int do_mtdparts(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return spread_partitions();
 #endif /* CONFIG_CMD_MTDPARTS_SPREAD */
 
+	if ((argc == 3) && (strcmp(argv[1], "setenv") == 0)) {
+		debug("setenv %s\n", argv[2]);
+		return setenv_vars(argv[2]);
+	}
+
+	if ((argc == 2) && (strcmp(argv[1], "enumerate") == 0)) {
+		debug("enumerate\n");
+		return enumerate_vars();
+	}
+
 	return cmd_usage(cmdtp);
 }
 
@@ -2068,6 +2163,10 @@ U_BOOT_CMD(
 #else
 	"\n"
 #endif /* CONFIG_CMD_MTDPARTS_SPREAD */
+	"mtdparts setenv <name>\n"
+	"    - fill in mtdparts_addr, mtdparts_name, mtdparts_netsize mtdparts_size env vars\n"
+	"mtdparts enumerate\n"
+	"    - fill in mtdparts_list env var with a list of section names\n\n"
 	"-----\n\n"
 	"this command uses three environment variables:\n\n"
 	"'partition' - keeps current partition identifier\n\n"
