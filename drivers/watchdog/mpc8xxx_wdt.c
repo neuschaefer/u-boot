@@ -100,6 +100,7 @@ static const struct wdt_ops mpc8xxx_wdt_ops = {
 
 static const struct udevice_id mpc8xxx_wdt_ids[] = {
 	{ .compatible = "mpc83xx_wdt", .data = 0x10000 },
+	{ .compatible = "fsl,mpc83xx-wdt", .data = 0x10000 },
 	{ .compatible = "fsl,pq1-wdt", .data = 0x800 },
 	{ .compatible = "fsl,pq2pro-wdt", .data = 0x10000 },
 	{}
